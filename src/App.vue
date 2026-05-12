@@ -119,6 +119,10 @@ function toggleBookPage(page) {
   activeBookPage.value = activeBookPage.value === page ? '' : page
 }
 
+function closeBookPage() {
+  activeBookPage.value = ''
+}
+
 const monthTransactions = computed(() =>
   state.transactions.filter((item) => item.date.startsWith(currentMonth.value)),
 )
@@ -286,12 +290,31 @@ function selectMonth(monthKey) {
 }
 
 function addCategory(event) {
-  const input = event.target
-  const category = input.value.trim()
+  const input = typeof event === 'string' ? null : event.target
+  const category = (typeof event === 'string' ? event : input.value).trim()
   if (category && !state.settings.categories.includes(category)) {
     state.settings.categories.push(category)
-    input.value = ''
+    if (input) input.value = ''
   }
+}
+
+function updateCategory({ oldName, newName }) {
+  const nextName = newName.trim()
+  if (!oldName || !nextName) return
+  const categoryIndex = state.settings.categories.indexOf(oldName)
+  if (categoryIndex === -1) return
+  if (oldName !== nextName && state.settings.categories.includes(nextName)) return
+
+  state.settings.categories[categoryIndex] = nextName
+  state.transactions.forEach((transaction) => {
+    if (transaction.category === oldName) {
+      transaction.category = nextName
+    }
+  })
+}
+
+function deleteCategory(category) {
+  state.settings.categories = state.settings.categories.filter((item) => item !== category)
 }
 </script>
 
@@ -356,13 +379,20 @@ function addCategory(event) {
         :week-starts-on="state.settings.weekStartsOn"
         @add-transaction="addTransaction"
         @change-month="changeMonth"
+        @open-category-page="toggleBookPage('category')"
         @remove-transaction="removeTransaction"
         @select-date="selectedDate = $event"
         @select-month="selectMonth"
       />
 
       <Transition name="calendar-settings-backdrop">
-        <div v-if="isBookMenuOpen" class="calendar-settings-backdrop" aria-hidden="true"></div>
+        <button
+          v-if="isBookMenuOpen"
+          class="calendar-settings-backdrop"
+          type="button"
+          aria-label="카테고리 또는 설정 페이지 닫기"
+          @click="closeBookPage"
+        ></button>
       </Transition>
 
       <Transition name="calendar-settings-drawer">
@@ -371,9 +401,9 @@ function addCategory(event) {
           key="calendar-category"
           class="calendar-settings-page"
           :categories="state.settings.categories"
-          :currency="currency"
-          :transactions="monthTransactions"
           @add-category="addCategory"
+          @delete-category="deleteCategory"
+          @update-category="updateCategory"
         />
 
         <DateSetting

@@ -16,7 +16,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['add-transaction'])
+const emit = defineEmits(['add-transaction', 'open-category-page'])
 
 const isEntryModalOpen = ref(false)
 const isDatePickerOpen = ref(false)
@@ -103,8 +103,13 @@ function selectOption(field, value) {
       <section class="entry-modal" role="dialog" aria-modal="true" aria-label="거래 입력">
         <form class="entry-form" @submit.prevent="submitTransaction">
           <div class="entry-control-row">
-            <button class="entry-action-button" type="button" aria-label="취소" @click="isEntryModalOpen = false">
-              ×
+            <button
+              class="entry-action-button entry-cancel-button"
+              type="button"
+              aria-label="취소"
+              @click="isEntryModalOpen = false"
+            >
+              <span aria-hidden="true"></span>
             </button>
             <div class="segmented" :class="{ 'income-selected': transactionForm.type === 'income' }">
               <span class="segmented-indicator"></span>
@@ -123,7 +128,9 @@ function selectOption(field, value) {
                 수입
               </button>
             </div>
-            <button class="entry-action-button" type="submit" aria-label="추가">✓</button>
+            <button class="entry-action-button entry-confirm-button" type="submit" aria-label="추가">
+              <span aria-hidden="true"></span>
+            </button>
           </div>
 
         <label class="entry-field">
@@ -133,29 +140,16 @@ function selectOption(field, value) {
 
         <div class="entry-field">
           <span>카테고리</span>
-          <div class="entry-select">
+          <div class="entry-link-row">
+            <span>{{ transactionForm.category || '카테고리' }}</span>
             <button
-              class="entry-select-button"
+              class="entry-link-button"
               type="button"
-              :aria-expanded="openOptionMenu === 'category'"
-              @click="toggleOptionMenu('category')"
+              aria-label="카테고리 페이지 열기"
+              @click="emit('open-category-page')"
             >
-              <span>{{ transactionForm.category }}</span>
-              <span class="entry-select-chevron" aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
             </button>
-            <Transition name="entry-dropdown-slide">
-              <div v-if="openOptionMenu === 'category'" class="entry-select-menu">
-                <button
-                  v-for="category in categories"
-                  :key="category"
-                  type="button"
-                  :class="{ active: category === transactionForm.category }"
-                  @click="selectOption('category', category)"
-                >
-                  {{ category }}
-                </button>
-              </div>
-            </Transition>
           </div>
         </div>
 

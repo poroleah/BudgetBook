@@ -40,6 +40,7 @@ const props = defineProps({
 const emit = defineEmits([
   'add-transaction',
   'change-month',
+  'open-category-page',
   'remove-transaction',
   'select-date',
   'select-month',
@@ -174,6 +175,7 @@ function selectMonth(monthKey) {
       :selected-date="selectedDate"
       :transaction-form="transactionForm"
       @add-transaction="$emit('add-transaction')"
+      @open-category-page="$emit('open-category-page')"
     />
   </section>
 </template>
