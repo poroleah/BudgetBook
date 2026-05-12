@@ -2,6 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import AnalysisView from './views/Analysis/Analysis.vue'
 import AssetView from './views/Asset/Asset.vue'
+import DateCategory from './views/Date/Date_Category.vue'
+import DateSetting from './views/Date/Date_Setting.vue'
 import DateView from './views/Date/Date.vue'
 import SettingView from './views/Setting/Setting.vue'
 
@@ -51,6 +53,7 @@ const initialState = {
     bookName: '내 가계부',
     monthlyBudget: 1200000,
     theme: 'light',
+    weekStartsOn: 'sunday',
     categories: ['식비', '교통', '주거', '쇼핑', '월급', '기타'],
   },
 }
@@ -66,15 +69,17 @@ const state = reactive({
   },
 })
 const activeTab = ref('calendar')
-const isBookMenuOpen = ref(false)
+const activeBookPage = ref('')
 const currentMonth = ref(`${today.getFullYear()}-${pad(today.getMonth() + 1)}`)
 const selectedDate = ref(toDateKey(today))
 
 const transactionForm = reactive({
   type: 'expense',
-  title: '',
-  category: '식비',
   amount: '',
+  category: '식비',
+  date: selectedDate.value,
+  memo: '',
+  paymentMethod: '카드',
 })
 
 const assetForm = reactive({
@@ -91,6 +96,10 @@ watch(
   { deep: true },
 )
 
+watch(selectedDate, (date) => {
+  transactionForm.date = date
+})
+
 const tabs = [
   { id: 'calendar', label: '달력' },
   { id: 'analytics', label: '분석' },
@@ -99,6 +108,16 @@ const tabs = [
 ]
 
 const activeTabIndex = computed(() => tabs.findIndex((tab) => tab.id === activeTab.value))
+const isBookMenuOpen = computed(() => activeBookPage.value !== '')
+
+function selectTab(tabId) {
+  activeTab.value = tabId
+  activeBookPage.value = ''
+}
+
+function toggleBookPage(page) {
+  activeBookPage.value = activeBookPage.value === page ? '' : page
+}
 
 const monthTransactions = computed(() =>
   state.transactions.filter((item) => item.date.startsWith(currentMonth.value)),
@@ -129,11 +148,13 @@ const calendarDays = computed(() => {
   const [year, month] = currentMonth.value.split('-').map(Number)
   const firstDay = new Date(year, month - 1, 1)
   const lastDate = new Date(year, month, 0).getDate()
-  const prefix = firstDay.getDay()
+  const weekStartOffset = state.settings.weekStartsOn === 'monday' ? 1 : 0
+  const prefix = (firstDay.getDay() - weekStartOffset + 7) % 7
   const days = Array.from({ length: prefix }, () => null)
 
   for (let day = 1; day <= lastDate; day += 1) {
     const date = `${year}-${pad(month)}-${pad(day)}`
+    const weekday = new Date(year, month - 1, day).getDay()
     const dailyItems = state.transactions.filter((item) => item.date === date)
     const income = dailyItems
       .filter((item) => item.type === 'income')
@@ -142,7 +163,7 @@ const calendarDays = computed(() => {
       .filter((item) => item.type === 'expense')
       .reduce((sum, item) => sum + Number(item.amount), 0)
 
-    days.push({ day, date, income, expense })
+    days.push({ day, date, weekday, income, expense })
   }
 
   return days
@@ -205,19 +226,22 @@ const netWorth = computed(() => totalAssets.value - totalDebt.value)
 
 function addTransaction() {
   const amount = Number(transactionForm.amount)
-  if (!transactionForm.title.trim() || amount <= 0) return
+  if (amount <= 0) return
 
   state.transactions.push({
     id: Date.now(),
-    date: selectedDate.value,
+    date: transactionForm.date || selectedDate.value,
     type: transactionForm.type,
-    title: transactionForm.title.trim(),
+    title: transactionForm.memo.trim() || transactionForm.category,
     category: transactionForm.category,
     amount,
+    memo: transactionForm.memo.trim(),
+    paymentMethod: transactionForm.paymentMethod,
   })
 
-  transactionForm.title = ''
   transactionForm.amount = ''
+  transactionForm.memo = ''
+  transactionForm.date = selectedDate.value
 }
 
 function removeTransaction(id) {
@@ -272,76 +296,95 @@ function addCategory(event) {
 </script>
 
 <template>
-  <main class="app-shell" :data-theme="state.settings.theme">
+  <main class="app-shell" :class="{ 'book-menu-open': isBookMenuOpen }" :data-theme="state.settings.theme">
     <section class="topbar">
       <div class="title-area">
         <p class="eyebrow">Moneybook</p>
         <div class="title-row">
           <div class="title-copy">
-            <h1>{{ state.settings.bookName || '내 가계부' }}</h1>
+            <div class="title-heading">
+              <h1>{{ state.settings.bookName || '내 가계부' }}</h1>
+            </div>
             <div class="compact-summary" aria-label="이번 달 요약">
               <span>수입 {{ currency.format(monthIncome) }}</span>
               <span>지출 {{ currency.format(monthExpense) }}</span>
               <span>잔액 {{ currency.format(monthBalance) }}</span>
             </div>
           </div>
-          <div class="book-menu">
+          <div v-if="activeTab === 'calendar'" class="book-menu">
+            <button
+              class="menu-button category-menu-button"
+              type="button"
+              aria-label="카테고리 페이지 열기"
+              :aria-expanded="activeBookPage === 'category'"
+              @click="toggleBookPage('category')"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
             <button
               class="menu-button"
               type="button"
               aria-label="가계부 설정 열기"
-              :aria-expanded="isBookMenuOpen"
-              @click="isBookMenuOpen = !isBookMenuOpen"
+              :aria-expanded="activeBookPage === 'settings'"
+              @click="toggleBookPage('settings')"
             >
               <span></span>
               <span></span>
               <span></span>
             </button>
-            <section v-if="isBookMenuOpen" class="book-menu-panel">
-              <div class="panel-heading">
-                <p>Book</p>
-                <h2>가계부 설정</h2>
-              </div>
-              <label>
-                <span>가계부 이름</span>
-                <input v-model.trim="state.settings.bookName" type="text" placeholder="내 가계부" />
-              </label>
-              <label>
-                <span>월 예산</span>
-                <input v-model.number="state.settings.monthlyBudget" type="number" min="0" />
-              </label>
-              <label>
-                <span>테마</span>
-                <select v-model="state.settings.theme">
-                  <option value="light">밝게</option>
-                  <option value="dark">어둡게</option>
-                </select>
-              </label>
-              <label>
-                <span>카테고리 추가</span>
-                <input type="text" placeholder="새 카테고리" @keyup.enter="addCategory" />
-              </label>
-            </section>
           </div>
         </div>
       </div>
     </section>
 
-    <DateView
+    <section
       v-if="activeTab === 'calendar'"
-      :calendar-days="calendarDays"
-      :categories="state.settings.categories"
-      :current-month="currentMonth"
-      :currency="currency"
-      :selected-date="selectedDate"
-      :selected-transactions="selectedTransactions"
-      :transaction-form="transactionForm"
-      @add-transaction="addTransaction"
-      @change-month="changeMonth"
-      @remove-transaction="removeTransaction"
-      @select-date="selectedDate = $event"
-      @select-month="selectMonth"
-    />
+      class="calendar-page-shell"
+      :class="{ 'settings-page-open': isBookMenuOpen }"
+    >
+      <DateView
+        :calendar-days="calendarDays"
+        :categories="state.settings.categories"
+        :current-month="currentMonth"
+        :currency="currency"
+        :selected-date="selectedDate"
+        :selected-transactions="selectedTransactions"
+        :transaction-form="transactionForm"
+        :week-starts-on="state.settings.weekStartsOn"
+        @add-transaction="addTransaction"
+        @change-month="changeMonth"
+        @remove-transaction="removeTransaction"
+        @select-date="selectedDate = $event"
+        @select-month="selectMonth"
+      />
+
+      <Transition name="calendar-settings-backdrop">
+        <div v-if="isBookMenuOpen" class="calendar-settings-backdrop" aria-hidden="true"></div>
+      </Transition>
+
+      <Transition name="calendar-settings-drawer">
+        <DateCategory
+          v-if="activeBookPage === 'category'"
+          key="calendar-category"
+          class="calendar-settings-page"
+          :categories="state.settings.categories"
+          :currency="currency"
+          :transactions="monthTransactions"
+          @add-category="addCategory"
+        />
+
+        <DateSetting
+          v-else-if="activeBookPage === 'settings'"
+          key="calendar-settings"
+          class="calendar-settings-page"
+          :settings="state.settings"
+          @add-category="addCategory"
+        />
+      </Transition>
+    </section>
 
     <AnalysisView
       v-if="activeTab === 'analytics'"
@@ -384,7 +427,7 @@ function addCategory(event) {
         :key="tab.id"
         type="button"
         :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
+        @click="selectTab(tab.id)"
       >
         {{ tab.label }}
       </button>

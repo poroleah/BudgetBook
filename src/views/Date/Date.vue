@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import DateAdd from './Date_Add.vue'
 
 const props = defineProps({
   calendarDays: {
@@ -30,6 +31,10 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  weekStartsOn: {
+    type: String,
+    required: true,
+  },
 })
 
 const emit = defineEmits([
@@ -41,7 +46,6 @@ const emit = defineEmits([
 ])
 
 const isMonthPickerOpen = ref(false)
-const isEntryModalOpen = ref(false)
 const pickerYear = ref(Number(props.currentMonth.split('-')[0]))
 
 const monthLabel = computed(() => {
@@ -56,6 +60,12 @@ const monthOptions = computed(() =>
   })),
 )
 
+const weekdayLabels = computed(() =>
+  props.weekStartsOn === 'monday'
+    ? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+    : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+)
+
 watch(
   () => props.currentMonth,
   (monthKey) => {
@@ -68,13 +78,6 @@ function selectMonth(monthKey) {
   isMonthPickerOpen.value = false
 }
 
-function submitTransaction() {
-  const canSubmit = props.transactionForm.title.trim() && Number(props.transactionForm.amount) > 0
-  emit('add-transaction')
-  if (canSubmit) {
-    isEntryModalOpen.value = false
-  }
-}
 </script>
 
 <template>
@@ -121,13 +124,7 @@ function submitTransaction() {
         <button type="button" aria-label="다음 달" @click="$emit('change-month', 1)">›</button>
       </div>
       <div class="weekday-row">
-        <span>SUN</span>
-        <span>MON</span>
-        <span>TUE</span>
-        <span>WED</span>
-        <span>THU</span>
-        <span>FRI</span>
-        <span>SAT</span>
+        <span v-for="weekday in weekdayLabels" :key="weekday">{{ weekday }}</span>
       </div>
       <div class="calendar-grid">
         <button
@@ -137,8 +134,8 @@ function submitTransaction() {
           :class="{
             selected: day?.date === selectedDate,
             empty: !day,
-            sunday: index % 7 === 0,
-            saturday: index % 7 === 6,
+            sunday: day?.weekday === 0,
+            saturday: day?.weekday === 6,
             'has-transaction': day?.income || day?.expense,
           }"
           :disabled="!day"
@@ -172,56 +169,11 @@ function submitTransaction() {
       </div>
     </section>
 
-    <button class="floating-add-button" type="button" aria-label="거래 추가" @click="isEntryModalOpen = true">
-      <span></span>
-      <span></span>
-    </button>
-
-    <div v-if="isEntryModalOpen" class="entry-modal-layer">
-      <button
-        class="entry-modal-backdrop"
-        type="button"
-        aria-label="거래 입력 닫기"
-        @click="isEntryModalOpen = false"
-      ></button>
-      <section class="entry-modal" role="dialog" aria-modal="true" aria-labelledby="entry-modal-title">
-        <div class="panel-heading">
-          <p>{{ selectedDate }}</p>
-          <h2 id="entry-modal-title">거래 추가</h2>
-        </div>
-
-        <form class="entry-form" @submit.prevent="submitTransaction">
-          <div class="segmented">
-            <button
-              type="button"
-              :class="{ active: transactionForm.type === 'expense' }"
-              @click="transactionForm.type = 'expense'"
-            >
-              지출
-            </button>
-            <button
-              type="button"
-              :class="{ active: transactionForm.type === 'income' }"
-              @click="transactionForm.type = 'income'"
-            >
-              수입
-            </button>
-          </div>
-          <input v-model="transactionForm.title" type="text" placeholder="내용" />
-          <div class="form-row">
-            <select v-model="transactionForm.category">
-              <option v-for="category in categories" :key="category">
-                {{ category }}
-              </option>
-            </select>
-            <input v-model="transactionForm.amount" type="number" min="0" placeholder="금액" />
-          </div>
-          <div class="modal-actions">
-            <button type="button" @click="isEntryModalOpen = false">취소</button>
-            <button class="primary-button" type="submit">추가</button>
-          </div>
-        </form>
-      </section>
-    </div>
+    <DateAdd
+      :categories="categories"
+      :selected-date="selectedDate"
+      :transaction-form="transactionForm"
+      @add-transaction="$emit('add-transaction')"
+    />
   </section>
 </template>
