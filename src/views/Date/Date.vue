@@ -11,6 +11,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  categoryDetails: {
+    type: Object,
+    required: true,
+  },
   currentMonth: {
     type: String,
     required: true,
@@ -44,10 +48,15 @@ const emit = defineEmits([
   'remove-transaction',
   'select-date',
   'select-month',
+  'update-transaction',
 ])
 
 const isMonthPickerOpen = ref(false)
+const dateAdd = ref(null)
 const pickerYear = ref(Number(props.currentMonth.split('-')[0]))
+const pad = (value) => String(value).padStart(2, '0')
+const today = new Date()
+const todayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
 
 const monthLabel = computed(() => {
   const [year, month] = props.currentMonth.split('-').map(Number)
@@ -67,6 +76,18 @@ const weekdayLabels = computed(() =>
     : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
 )
 
+const selectedIncome = computed(() =>
+  props.selectedTransactions
+    .filter((item) => item.type === 'income')
+    .reduce((sum, item) => sum + Number(item.amount), 0),
+)
+
+const selectedExpense = computed(() =>
+  props.selectedTransactions
+    .filter((item) => item.type === 'expense')
+    .reduce((sum, item) => sum + Number(item.amount), 0),
+)
+
 watch(
   () => props.currentMonth,
   (monthKey) => {
@@ -77,6 +98,14 @@ watch(
 function selectMonth(monthKey) {
   emit('select-month', monthKey)
   isMonthPickerOpen.value = false
+}
+
+function openTransactionEditor(transaction) {
+  dateAdd.value?.openTransaction(transaction)
+}
+
+function categoryIcon(category) {
+  return props.categoryDetails[category]?.icon || category?.trim().slice(0, 1) || '?'
 }
 
 </script>
@@ -134,6 +163,7 @@ function selectMonth(monthKey) {
           class="day-cell"
           :class="{
             selected: day?.date === selectedDate,
+            today: day?.date === todayKey,
             empty: !day,
             sunday: day?.weekday === 0,
             saturday: day?.weekday === 6,
@@ -148,22 +178,46 @@ function selectMonth(monthKey) {
     </div>
 
     <section class="transaction-section">
-      <div class="panel-heading">
-        <p>{{ selectedDate }}</p>
-        <h2>거래 기록</h2>
+      <div class="panel-heading transaction-heading">
+        <div>
+          <p>{{ selectedDate }}</p>
+          <h2>거래 기록</h2>
+        </div>
+        <div class="daily-summary" aria-label="선택 날짜 수입과 지출">
+          <div class="daily-summary-item">
+            <span>수입</span>
+            <strong class="income">+{{ currency.format(selectedIncome) }}</strong>
+          </div>
+          <div class="daily-summary-item">
+            <span>지출</span>
+            <strong class="expense">-{{ currency.format(selectedExpense) }}</strong>
+          </div>
+        </div>
       </div>
 
       <div class="transaction-list">
-        <article v-for="item in selectedTransactions" :key="item.id" class="transaction-item">
-          <div>
-            <strong>{{ item.title }}</strong>
-            <span>{{ item.category }}</span>
+        <article
+          v-for="item in selectedTransactions"
+          :key="item.id"
+          class="transaction-item"
+          role="button"
+          tabindex="0"
+          @click="openTransactionEditor(item)"
+          @keydown.enter.prevent="openTransactionEditor(item)"
+          @keydown.space.prevent="openTransactionEditor(item)"
+        >
+          <div class="transaction-main">
+            <span class="transaction-category-icon" aria-hidden="true">{{ categoryIcon(item.category) }}</span>
+            <div>
+              <strong>{{ item.subcategory || item.title }}</strong>
+              <span>{{ [item.paymentMethod, item.memo].filter(Boolean).join(' | ') || '-' }}</span>
+            </div>
           </div>
           <div class="amount-line">
             <b :class="item.type">
               {{ item.type === 'income' ? '+' : '-' }}{{ currency.format(item.amount) }}
             </b>
-            <button type="button" @click="$emit('remove-transaction', item.id)">삭제</button>
+            <button type="button" @click.stop="$emit('remove-transaction', item.id)">삭제</button>
           </div>
         </article>
         <p v-if="!selectedTransactions.length" class="empty-state">기록이 없습니다.</p>
@@ -171,11 +225,14 @@ function selectMonth(monthKey) {
     </section>
 
     <DateAdd
+      ref="dateAdd"
       :categories="categories"
+      :category-details="categoryDetails"
       :selected-date="selectedDate"
       :transaction-form="transactionForm"
       @add-transaction="$emit('add-transaction')"
       @open-category-page="$emit('open-category-page')"
+      @update-transaction="$emit('update-transaction', $event)"
     />
   </section>
 </template>

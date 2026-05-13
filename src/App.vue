@@ -17,6 +17,15 @@ const currency = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 0,
 })
 
+const defaultCategoryDetails = {
+  식비: { type: 'expense', icon: '', subcategories: ['외식', '장보기', '간식'] },
+  교통: { type: 'expense', icon: '', subcategories: ['버스', '지하철', '택시'] },
+  주거: { type: 'expense', icon: '', subcategories: ['월세', '관리비', '수리'] },
+  쇼핑: { type: 'expense', icon: '', subcategories: ['의류', '생활용품', '선물'] },
+  월급: { type: 'income', icon: '', subcategories: ['기본급', '상여', '수당'] },
+  기타: { type: 'expense', icon: '', subcategories: ['취미', '구독', '기타'] },
+}
+
 const initialState = {
   transactions: [
     {
@@ -24,7 +33,8 @@ const initialState = {
       date: toDateKey(today),
       type: 'expense',
       category: '식비',
-      title: '점심',
+      subcategory: '외식',
+      title: '외식',
       amount: 12000,
     },
     {
@@ -32,7 +42,8 @@ const initialState = {
       date: `${today.getFullYear()}-${pad(today.getMonth() + 1)}-05`,
       type: 'income',
       category: '월급',
-      title: '급여',
+      subcategory: '기본급',
+      title: '기본급',
       amount: 2800000,
     },
     {
@@ -40,7 +51,8 @@ const initialState = {
       date: `${today.getFullYear()}-${pad(today.getMonth() + 1)}-09`,
       type: 'expense',
       category: '교통',
-      title: '교통카드 충전',
+      subcategory: '버스',
+      title: '버스',
       amount: 50000,
     },
   ],
@@ -55,6 +67,7 @@ const initialState = {
     theme: 'light',
     weekStartsOn: 'sunday',
     categories: ['식비', '교통', '주거', '쇼핑', '월급', '기타'],
+    categoryDetails: defaultCategoryDetails,
   },
 }
 
@@ -66,10 +79,15 @@ const state = reactive({
   settings: {
     ...initialState.settings,
     ...savedStateData.settings,
+    categoryDetails: {
+      ...initialState.settings.categoryDetails,
+      ...savedStateData.settings?.categoryDetails,
+    },
   },
 })
 const activeTab = ref('calendar')
 const activeBookPage = ref('')
+const categoryPageMode = ref('manage')
 const currentMonth = ref(`${today.getFullYear()}-${pad(today.getMonth() + 1)}`)
 const selectedDate = ref(toDateKey(today))
 
@@ -78,6 +96,7 @@ const transactionForm = reactive({
   amount: '',
   category: '식비',
   date: selectedDate.value,
+  subcategory: '외식',
   memo: '',
   paymentMethod: '카드',
 })
@@ -116,11 +135,25 @@ function selectTab(tabId) {
 }
 
 function toggleBookPage(page) {
+  categoryPageMode.value = 'manage'
   activeBookPage.value = activeBookPage.value === page ? '' : page
 }
 
 function closeBookPage() {
   activeBookPage.value = ''
+  categoryPageMode.value = 'manage'
+}
+
+function openCategoryPicker() {
+  activeBookPage.value = 'category'
+  categoryPageMode.value = 'select'
+}
+
+function selectTransactionCategory({ category, subcategory }) {
+  transactionForm.category = category
+  transactionForm.subcategory = subcategory
+  transactionForm.type = state.settings.categoryDetails[category]?.type || transactionForm.type
+  closeBookPage()
 }
 
 const monthTransactions = computed(() =>
@@ -236,8 +269,9 @@ function addTransaction() {
     id: Date.now(),
     date: transactionForm.date || selectedDate.value,
     type: transactionForm.type,
-    title: transactionForm.memo.trim() || transactionForm.category,
+    title: transactionForm.subcategory || transactionForm.category,
     category: transactionForm.category,
+    subcategory: transactionForm.subcategory,
     amount,
     memo: transactionForm.memo.trim(),
     paymentMethod: transactionForm.paymentMethod,
@@ -250,6 +284,15 @@ function addTransaction() {
 
 function removeTransaction(id) {
   state.transactions = state.transactions.filter((item) => item.id !== id)
+}
+
+function updateTransaction(updatedTransaction) {
+  const transactionIndex = state.transactions.findIndex((item) => item.id === updatedTransaction.id)
+  if (transactionIndex === -1) return
+
+  state.transactions[transactionIndex] = updatedTransaction
+  selectedDate.value = updatedTransaction.date
+  currentMonth.value = updatedTransaction.date.slice(0, 7)
 }
 
 function addAsset() {
@@ -294,6 +337,11 @@ function addCategory(event) {
   const category = (typeof event === 'string' ? event : input.value).trim()
   if (category && !state.settings.categories.includes(category)) {
     state.settings.categories.push(category)
+    state.settings.categoryDetails[category] = {
+      type: 'expense',
+      icon: '',
+      subcategories: ['기본'],
+    }
     if (input) input.value = ''
   }
 }
@@ -306,6 +354,10 @@ function updateCategory({ oldName, newName }) {
   if (oldName !== nextName && state.settings.categories.includes(nextName)) return
 
   state.settings.categories[categoryIndex] = nextName
+  if (state.settings.categoryDetails[oldName]) {
+    state.settings.categoryDetails[nextName] = state.settings.categoryDetails[oldName]
+    delete state.settings.categoryDetails[oldName]
+  }
   state.transactions.forEach((transaction) => {
     if (transaction.category === oldName) {
       transaction.category = nextName
@@ -315,6 +367,11 @@ function updateCategory({ oldName, newName }) {
 
 function deleteCategory(category) {
   state.settings.categories = state.settings.categories.filter((item) => item !== category)
+  delete state.settings.categoryDetails[category]
+}
+
+function updateCategoryDetails({ category, details }) {
+  state.settings.categoryDetails[category] = details
 }
 </script>
 
@@ -371,6 +428,7 @@ function deleteCategory(category) {
       <DateView
         :calendar-days="calendarDays"
         :categories="state.settings.categories"
+        :category-details="state.settings.categoryDetails"
         :current-month="currentMonth"
         :currency="currency"
         :selected-date="selectedDate"
@@ -379,10 +437,11 @@ function deleteCategory(category) {
         :week-starts-on="state.settings.weekStartsOn"
         @add-transaction="addTransaction"
         @change-month="changeMonth"
-        @open-category-page="toggleBookPage('category')"
+        @open-category-page="openCategoryPicker"
         @remove-transaction="removeTransaction"
         @select-date="selectedDate = $event"
         @select-month="selectMonth"
+        @update-transaction="updateTransaction"
       />
 
       <Transition name="calendar-settings-backdrop">
@@ -401,8 +460,13 @@ function deleteCategory(category) {
           key="calendar-category"
           class="calendar-settings-page"
           :categories="state.settings.categories"
+          :category-details="state.settings.categoryDetails"
+          :selection-mode="categoryPageMode === 'select'"
+          :selection-type="transactionForm.type"
           @add-category="addCategory"
           @delete-category="deleteCategory"
+          @select-subcategory="selectTransactionCategory"
+          @update-category-details="updateCategoryDetails"
           @update-category="updateCategory"
         />
 

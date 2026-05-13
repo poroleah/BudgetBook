@@ -6,12 +6,31 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  categoryDetails: {
+    type: Object,
+    required: true,
+  },
+  selectionMode: {
+    type: Boolean,
+    default: false,
+  },
+  selectionType: {
+    type: String,
+    default: 'expense',
+  },
 })
 
-const emit = defineEmits(['add-category', 'delete-category', 'update-category'])
+const emit = defineEmits([
+  'add-category',
+  'delete-category',
+  'select-subcategory',
+  'update-category',
+  'update-category-details',
+])
 
 const activeType = ref('expense')
 const selectedCategory = ref(null)
+const isSelectionEditMode = ref(false)
 const newCategoryName = ref('')
 const newSubcategoryName = ref('')
 const isEmojiEditing = ref(false)
@@ -34,16 +53,27 @@ const emojiPattern = /\p{Extended_Pictographic}/u
 function syncCategories() {
   props.categories.forEach((category) => {
     if (!categoryDetails[category]) {
+      const savedDetails = props.categoryDetails[category]
       categoryDetails[category] = {
-        type: defaultDetails[category]?.type || 'expense',
-        icon: '',
-        subcategories: [...(defaultDetails[category]?.subcategories || ['기본'])],
+        type: savedDetails?.type || defaultDetails[category]?.type || 'expense',
+        icon: savedDetails?.icon || '',
+        subcategories: [...(savedDetails?.subcategories || defaultDetails[category]?.subcategories || ['기본'])],
       }
     }
   })
 }
 
 watch(() => props.categories, syncCategories, { immediate: true, deep: true })
+
+watch(
+  () => [props.selectionMode, props.selectionType],
+  () => {
+    if (props.selectionMode && ['expense', 'income'].includes(props.selectionType)) {
+      activeType.value = props.selectionType
+    }
+  },
+  { immediate: true },
+)
 
 const visibleCategories = computed(() =>
   props.categories
@@ -55,9 +85,16 @@ const visibleCategories = computed(() =>
 )
 
 const pageTitle = computed(() => {
+  if (selectedCategory.value && !isSelectionEditMode.value) return '소분류 선택'
+  if (selectedCategory.value) {
+    return `${selectedCategory.value.type === 'income' ? '수입' : '지출'} 카테고리 수정`
+  }
+  if (props.selectionMode) return '카테고리 선택'
   if (!selectedCategory.value) return '카테고리 설정'
   return `${selectedCategory.value.type === 'income' ? '수입' : '지출'} 카테고리`
 })
+
+const isEditingCategory = computed(() => isSelectionEditMode.value)
 
 function openNewCategory() {
   const name = activeType.value === 'income' ? '새 수입' : '새 지출'
@@ -72,6 +109,7 @@ function openNewCategory() {
   newSubcategoryName.value = ''
   isEmojiEditing.value = false
   previousIcon.value = ''
+  isSelectionEditMode.value = false
 }
 
 function openCategory(category) {
@@ -86,20 +124,25 @@ function openCategory(category) {
   newSubcategoryName.value = ''
   isEmojiEditing.value = false
   previousIcon.value = ''
+  isSelectionEditMode.value = false
 }
 
 function closeDetail() {
   selectedCategory.value = null
+  isSelectionEditMode.value = false
   newCategoryName.value = ''
   newSubcategoryName.value = ''
   isEmojiEditing.value = false
   previousIcon.value = ''
 }
 
-function saveCategory() {
+function saveCategory({ returnToSelection = false } = {}) {
   if (!selectedCategory.value) return
   const name = newCategoryName.value.trim()
-  if (!name) return
+  if (!name) {
+    closeDetail()
+    return
+  }
 
   if (selectedCategory.value.isNew) {
     emit('add-category', name)
@@ -113,8 +156,27 @@ function saveCategory() {
   categoryDetails[name] = {
     type: selectedCategory.value.type,
     icon: selectedCategory.value.icon,
-    subcategories: [...selectedCategory.value.subcategories],
+    subcategories: selectedCategory.value.subcategories.length ? [...selectedCategory.value.subcategories] : ['기본'],
   }
+  emit('update-category-details', {
+    category: name,
+    details: categoryDetails[name],
+  })
+
+  if (returnToSelection) {
+    selectedCategory.value = {
+      name,
+      ...categoryDetails[name],
+      isNew: false,
+    }
+    newCategoryName.value = name
+    newSubcategoryName.value = ''
+    isEmojiEditing.value = false
+    previousIcon.value = ''
+    isSelectionEditMode.value = false
+    return
+  }
+
   closeDetail()
 }
 
@@ -122,6 +184,27 @@ function deleteCategory() {
   if (!selectedCategory.value || selectedCategory.value.isNew) return
   emit('delete-category', selectedCategory.value.name)
   closeDetail()
+}
+
+function handleBack() {
+  if (isSelectionEditMode.value) {
+    saveCategory({ returnToSelection: true })
+    return
+  }
+  closeDetail()
+}
+
+function openSelectionEditMode() {
+  if (!selectedCategory.value) return
+  isSelectionEditMode.value = true
+}
+
+function selectSubcategory(subcategory) {
+  if (!props.selectionMode || !selectedCategory.value) return
+  emit('select-subcategory', {
+    category: selectedCategory.value.name,
+    subcategory,
+  })
 }
 
 function addSubcategory() {
@@ -183,7 +266,7 @@ function finishEmojiEditing() {
         class="category-icon-button back-button"
         type="button"
         aria-label="카테고리 저장 후 목록으로 돌아가기"
-        @click="saveCategory"
+        @click="handleBack"
       >
         <span aria-hidden="true"></span>
       </button>
@@ -191,7 +274,15 @@ function finishEmojiEditing() {
       <h2>{{ pageTitle }}</h2>
       <div class="category-header-actions">
         <button
-          v-if="selectedCategory && !selectedCategory.isNew"
+          v-if="selectedCategory && !isSelectionEditMode"
+          class="category-text-button"
+          type="button"
+          @click="openSelectionEditMode"
+        >
+          수정
+        </button>
+        <button
+          v-if="selectedCategory && !selectedCategory.isNew && isEditingCategory"
           class="category-icon-button muted trash-button"
           type="button"
           aria-label="카테고리 삭제"
@@ -234,6 +325,35 @@ function finishEmojiEditing() {
         </div>
       </div>
 
+      <div
+        v-else-if="!isSelectionEditMode"
+        key="subcategory-select"
+        class="subcategory-select-view"
+      >
+        <div class="subcategory-select-icon">
+          {{ selectedCategory.icon || categoryMark(selectedCategory.name) }}
+        </div>
+        <strong class="subcategory-select-name">{{ selectedCategory.name }}</strong>
+        <div class="subcategory-select-chips">
+          <button
+            class="subcategory-chip"
+            type="button"
+            @click="selectSubcategory('')"
+          >
+            선택 안함
+          </button>
+          <button
+            v-for="subcategory in selectedCategory.subcategories"
+            :key="subcategory"
+            class="subcategory-chip"
+            type="button"
+            @click="selectSubcategory(subcategory)"
+          >
+            {{ subcategory }}
+          </button>
+        </div>
+      </div>
+
       <div v-else key="category-detail" class="category-detail-view">
         <div class="category-icon-editor">
           <input
@@ -243,13 +363,14 @@ function finishEmojiEditing() {
             type="text"
             inputmode="text"
             autocomplete="off"
-            :readonly="!isEmojiEditing"
+            :readonly="!isEditingCategory || !isEmojiEditing"
             :placeholder="isEmojiEditing ? '' : categoryMark(newCategoryName)"
             aria-label="카테고리 이모지 입력"
             @input="updateIcon"
             @blur="finishEmojiEditing"
           />
           <button
+            v-if="isEditingCategory"
             class="category-pencil-button"
             type="button"
             aria-label="카테고리 이모지 입력"
@@ -261,32 +382,59 @@ function finishEmojiEditing() {
 
         <label class="category-name-field">
           <span>카테고리 이름</span>
-          <input v-model.trim="newCategoryName" type="text" placeholder="카테고리 이름" />
+          <input
+            v-model.trim="newCategoryName"
+            type="text"
+            placeholder="카테고리 이름"
+            :readonly="!isEditingCategory"
+          />
         </label>
 
         <div class="subcategory-section">
           <div class="subcategory-title-row">
             <strong>소분류</strong>
-            <button type="button" aria-label="소분류 추가" @click="addSubcategory">＋</button>
+            <button
+              type="button"
+              aria-label="소분류 추가"
+              :disabled="!isEditingCategory"
+              @click="addSubcategory"
+            >
+              ＋
+            </button>
           </div>
           <div class="subcategory-input-row">
             <input
               v-model.trim="newSubcategoryName"
               type="text"
               placeholder="소분류 추가"
+              :readonly="!isEditingCategory"
               @keyup.enter="addSubcategory"
             />
           </div>
           <div class="subcategory-chips">
-            <button
-              v-for="subcategory in selectedCategory.subcategories"
-              :key="subcategory"
-              type="button"
-              @click="removeSubcategory(subcategory)"
-            >
-              {{ subcategory }}
-              <span>−</span>
-            </button>
+            <template v-if="selectionMode && !isSelectionEditMode">
+              <button
+                v-for="subcategory in selectedCategory.subcategories"
+                :key="subcategory"
+                class="subcategory-chip"
+                type="button"
+                @click="selectSubcategory(subcategory)"
+              >
+                {{ subcategory }}
+              </button>
+            </template>
+            <template v-else>
+              <span
+                v-for="subcategory in selectedCategory.subcategories"
+                :key="subcategory"
+                class="subcategory-chip"
+              >
+                <span>{{ subcategory }}</span>
+                <button type="button" :aria-label="`${subcategory} 삭제`" @click="removeSubcategory(subcategory)">
+                  −
+                </button>
+              </span>
+            </template>
           </div>
         </div>
       </div>
