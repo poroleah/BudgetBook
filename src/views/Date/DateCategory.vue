@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import PageHeader from '../../components/PageHeader.vue'
 
 const props = defineProps({
   categories: {
@@ -22,6 +23,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'add-category',
+  'closePage',
   'delete-category',
   'select-subcategory',
   'update-category',
@@ -43,11 +45,17 @@ const defaultDetails = {
   주거: { type: 'expense', subcategories: ['월세', '관리비', '수리'] },
   쇼핑: { type: 'expense', subcategories: ['의류', '생활용품', '선물'] },
   월급: { type: 'income', subcategories: ['기본급', '상여', '수당'] },
+  이체: { type: 'transfer', subcategories: ['계좌이체', '저축', '현금이동'] },
   기타: { type: 'expense', subcategories: ['취미', '구독', '기타'] },
 }
 
 const categoryDetails = reactive({})
 const categoryMark = (name) => name.trim().slice(0, 1) || '+'
+const categoryTypeLabels = {
+  expense: '지출',
+  income: '수입',
+  transfer: '이체',
+}
 const emojiPattern = /\p{Extended_Pictographic}/u
 
 function syncCategories() {
@@ -68,7 +76,7 @@ watch(() => props.categories, syncCategories, { immediate: true, deep: true })
 watch(
   () => [props.selectionMode, props.selectionType],
   () => {
-    if (props.selectionMode && ['expense', 'income'].includes(props.selectionType)) {
+    if (props.selectionMode && ['expense', 'income', 'transfer'].includes(props.selectionType)) {
       activeType.value = props.selectionType
     }
   },
@@ -87,17 +95,17 @@ const visibleCategories = computed(() =>
 const pageTitle = computed(() => {
   if (selectedCategory.value && !isSelectionEditMode.value) return '소분류 선택'
   if (selectedCategory.value) {
-    return `${selectedCategory.value.type === 'income' ? '수입' : '지출'} 카테고리 수정`
+    return `${categoryTypeLabels[selectedCategory.value.type] || '지출'} 카테고리 수정`
   }
   if (props.selectionMode) return '카테고리 선택'
   if (!selectedCategory.value) return '카테고리 설정'
-  return `${selectedCategory.value.type === 'income' ? '수입' : '지출'} 카테고리`
+  return `${categoryTypeLabels[selectedCategory.value.type] || '지출'} 카테고리`
 })
 
 const isEditingCategory = computed(() => isSelectionEditMode.value)
 
 function openNewCategory() {
-  const name = activeType.value === 'income' ? '새 수입' : '새 지출'
+  const name = `새 ${categoryTypeLabels[activeType.value] || '지출'}`
   selectedCategory.value = {
     name,
     type: activeType.value,
@@ -109,7 +117,7 @@ function openNewCategory() {
   newSubcategoryName.value = ''
   isEmojiEditing.value = false
   previousIcon.value = ''
-  isSelectionEditMode.value = false
+  isSelectionEditMode.value = true
 }
 
 function openCategory(category) {
@@ -188,7 +196,11 @@ function deleteCategory() {
 
 function handleBack() {
   if (isSelectionEditMode.value) {
-    saveCategory({ returnToSelection: true })
+    saveCategory({ returnToSelection: !selectedCategory.value?.isNew })
+    return
+  }
+  if (!selectedCategory.value) {
+    emit('closePage')
     return
   }
   closeDetail()
@@ -260,19 +272,12 @@ function finishEmojiEditing() {
 
 <template>
   <section class="book-menu-panel category-page-panel">
-    <div class="category-page-header">
-      <button
-        v-if="selectedCategory"
-        class="category-icon-button back-button"
-        type="button"
-        aria-label="카테고리 저장 후 목록으로 돌아가기"
-        @click="handleBack"
-      >
-        <span aria-hidden="true"></span>
-      </button>
-      <span v-else></span>
-      <h2>{{ pageTitle }}</h2>
-      <div class="category-header-actions">
+    <PageHeader
+      :title="pageTitle"
+      :back-label="selectedCategory ? '카테고리 목록으로 돌아가기' : '달력으로 돌아가기'"
+      @back="handleBack"
+    >
+      <template #right>
         <button
           v-if="selectedCategory && !isSelectionEditMode"
           class="category-text-button"
@@ -290,18 +295,27 @@ function finishEmojiEditing() {
         >
           <span aria-hidden="true"></span>
         </button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <Transition name="category-page-switch" mode="out-in">
       <div v-if="!selectedCategory" key="category-list" class="category-list-view">
-        <div class="category-type-tabs" :class="{ 'income-selected': activeType === 'income' }">
+        <div
+          class="category-type-tabs"
+          :class="{
+            'income-selected': activeType === 'income',
+            'transfer-selected': activeType === 'transfer',
+          }"
+        >
           <span class="category-type-indicator"></span>
           <button type="button" :class="{ active: activeType === 'expense' }" @click="activeType = 'expense'">
-            지출 카테고리
+            지출 
           </button>
           <button type="button" :class="{ active: activeType === 'income' }" @click="activeType = 'income'">
-            수입 카테고리
+            수입 
+          </button>
+          <button type="button" :class="{ active: activeType === 'transfer' }" @click="activeType = 'transfer'">
+            이체 
           </button>
         </div>
 

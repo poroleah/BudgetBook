@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import PageHeader from '../../components/PageHeader.vue'
 
 const props = defineProps({
   settings: {
@@ -8,7 +9,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['add-category'])
+defineEmits(['add-category', 'closePage'])
 
 const isBookNameEditing = ref(!props.settings.bookName)
 const isBudgetEditing = ref(props.settings.monthlyBudget === '')
@@ -42,10 +43,7 @@ function closeEditableFieldsOnOutsideControl(event) {
 
 <template>
   <section class="book-menu-panel" @click="closeEditableFieldsOnOutsideControl">
-    <div class="panel-heading">
-      <p>Book</p>
-      <h2>가계부 설정</h2>
-    </div>
+    <PageHeader title="가계부 설정" back-label="달력으로 돌아가기" @back="$emit('closePage')" />
     <div class="setting-value-row">
       <span>가계부 이름</span>
       <input
@@ -57,7 +55,8 @@ function closeEditableFieldsOnOutsideControl(event) {
         @keyup.enter="closeBookNameInput"
       />
       <button v-else class="setting-value-display" type="button" @click="isBookNameEditing = true">
-        {{ settings.bookName || '내 가계부' }}
+        <span>{{ settings.bookName || '내 가계부' }}</span>
+        <span class="setting-edit-icon" aria-hidden="true"></span>
       </button>
     </div>
     <div class="budget-row">
@@ -71,7 +70,8 @@ function closeEditableFieldsOnOutsideControl(event) {
         @keyup.enter="closeBudgetInput"
       />
       <button v-else class="setting-value-display" type="button" @click="isBudgetEditing = true">
-        {{ formattedMonthlyBudget }}
+        <span>{{ formattedMonthlyBudget }}</span>
+        <span class="setting-edit-icon" aria-hidden="true"></span>
       </button>
     </div>
     <div class="week-start-row">

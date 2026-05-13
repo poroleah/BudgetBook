@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import PageHeader from '../../components/PageHeader.vue'
 
 const props = defineProps({
   categories: {
@@ -195,42 +196,50 @@ defineExpose({
 
   <Transition name="entry-modal-slide">
     <div v-if="isEntryModalOpen" class="entry-modal-layer">
-      <button
-        class="entry-modal-backdrop"
-        type="button"
-        aria-label="거래 입력 닫기"
-        @click="closeEntryModal"
-      ></button>
       <section class="entry-modal" role="dialog" aria-modal="true" :aria-label="editingTransactionId ? '거래 수정' : '거래 입력'">
         <form class="entry-form" @submit.prevent="submitTransaction">
-          <div class="entry-control-row">
+          <PageHeader
+            class="entry-control-row"
+            close
+            :title="editingTransactionId ? '거래 수정' : '거래 등록'"
+            back-label="취소"
+            @back="closeEntryModal"
+          >
+            <template #right>
+              <button class="entry-save-button" type="submit">
+                저장
+              </button>
+            </template>
+          </PageHeader>
+
+          <div
+            class="segmented"
+            :class="{
+              'income-selected': transactionForm.type === 'income',
+              'transfer-selected': transactionForm.type === 'transfer',
+            }"
+          >
+            <span class="segmented-indicator"></span>
             <button
-              class="entry-action-button entry-cancel-button"
               type="button"
-              aria-label="취소"
-              @click="closeEntryModal"
+              :class="{ active: transactionForm.type === 'expense' }"
+              @click="transactionForm.type = 'expense'"
             >
-              <span aria-hidden="true"></span>
+              지출
             </button>
-            <div class="segmented" :class="{ 'income-selected': transactionForm.type === 'income' }">
-              <span class="segmented-indicator"></span>
-              <button
-                type="button"
-                :class="{ active: transactionForm.type === 'expense' }"
-                @click="transactionForm.type = 'expense'"
-              >
-                지출
-              </button>
-              <button
-                type="button"
-                :class="{ active: transactionForm.type === 'income' }"
-                @click="transactionForm.type = 'income'"
-              >
-                수입
-              </button>
-            </div>
-            <button class="entry-action-button entry-confirm-button" type="submit" :aria-label="editingTransactionId ? '수정' : '추가'">
-              <span aria-hidden="true"></span>
+            <button
+              type="button"
+              :class="{ active: transactionForm.type === 'income' }"
+              @click="transactionForm.type = 'income'"
+            >
+              수입
+            </button>
+            <button
+              type="button"
+              :class="{ active: transactionForm.type === 'transfer' }"
+              @click="transactionForm.type = 'transfer'"
+            >
+              이체
             </button>
           </div>
 
