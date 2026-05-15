@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   title: {
     type: String,
     required: true,
@@ -12,9 +14,30 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  currency: {
+    type: Object,
+    default: null,
+  },
+  expense: {
+    type: Number,
+    default: null,
+  },
+  income: {
+    type: Number,
+    default: null,
+  },
+  transfer: {
+    type: Number,
+    default: null,
+  },
 })
 
 defineEmits(['back'])
+
+const hasSummary = computed(() =>
+  props.currency &&
+  [props.income, props.expense, props.transfer].every((value) => typeof value === 'number'),
+)
 </script>
 
 <template>
@@ -27,7 +50,14 @@ defineEmits(['back'])
     >
       <span aria-hidden="true"></span>
     </button>
-    <h2>{{ title }}</h2>
+    <div class="page-header-title">
+      <h2>{{ title }}</h2>
+      <div v-if="hasSummary" class="compact-summary page-header-summary" aria-label="이번 달 요약">
+        <span>수입 {{ currency.format(income) }}</span>
+        <span>지출 {{ currency.format(expense) }}</span>
+        <span>이체 {{ currency.format(transfer) }}</span>
+      </div>
+    </div>
     <div class="category-header-actions">
       <slot name="right"></slot>
     </div>

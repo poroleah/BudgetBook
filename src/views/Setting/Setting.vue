@@ -2,6 +2,14 @@
 import { computed, ref } from 'vue'
 
 const props = defineProps({
+  activeBookId: {
+    type: String,
+    required: true,
+  },
+  books: {
+    type: Array,
+    required: true,
+  },
   categories: {
     type: Array,
     required: true,
@@ -12,7 +20,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['add-category'])
+defineEmits(['add-category', 'delete-book'])
 
 const isBookNameEditing = ref(!props.settings.bookName)
 const isBudgetEditing = ref(props.settings.monthlyBudget === '')
@@ -58,7 +66,8 @@ function closeEditableFieldsOnOutsideControl(event) {
           @keyup.enter="closeBookNameInput"
         />
         <button v-else class="setting-value-display" type="button" @click="isBookNameEditing = true">
-          {{ settings.bookName || '내 가계부' }}
+          <span>{{ settings.bookName || '내 가계부' }}</span>
+          <span class="setting-edit-icon" aria-hidden="true"></span>
         </button>
       </div>
       <div class="budget-row">
@@ -72,7 +81,8 @@ function closeEditableFieldsOnOutsideControl(event) {
           @keyup.enter="closeBudgetInput"
         />
         <button v-else class="setting-value-display" type="button" @click="isBudgetEditing = true">
-          {{ formattedMonthlyBudget }}
+          <span>{{ formattedMonthlyBudget }}</span>
+          <span class="setting-edit-icon" aria-hidden="true"></span>
         </button>
       </div>
       <div class="toggle-row">
@@ -113,6 +123,27 @@ function closeEditableFieldsOnOutsideControl(event) {
       </label>
       <div class="chip-list">
         <span v-for="category in categories" :key="category">{{ category }}</span>
+      </div>
+      <div class="book-delete-section">
+        <div class="panel-heading">
+          <p>Books</p>
+          <h2>가계부 목록</h2>
+        </div>
+        <div class="book-delete-list">
+          <article v-for="book in books" :key="book.id" class="book-delete-item">
+            <div>
+              <span>{{ book.id === activeBookId ? '현재 가계부' : '가계부' }}</span>
+              <strong>{{ book.settings?.bookName || '내 가계부' }}</strong>
+            </div>
+            <button
+              type="button"
+              :disabled="books.length <= 1"
+              @click="$emit('delete-book', book.id)"
+            >
+              삭제
+            </button>
+          </article>
+        </div>
       </div>
     </article>
   </section>

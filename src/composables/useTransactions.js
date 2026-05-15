@@ -1,14 +1,18 @@
 import { computed, reactive, watch } from 'vue'
 
 export function useTransactions(state, selectedDate, currentMonth) {
+  const defaultAssetName = () => state.assets?.[0]?.name || ''
+  const defaultPaymentMethod = () => state.settings.paymentMethods?.[0] || ''
+
   const transactionForm = reactive({
     type: 'expense',
     amount: '',
     category: '식비',
     date: selectedDate.value,
     subcategory: '외식',
+    assetName: defaultAssetName(),
     memo: '',
-    paymentMethod: '카드',
+    paymentMethod: defaultPaymentMethod(),
   })
 
   watch(selectedDate, (date) => {
@@ -25,23 +29,45 @@ export function useTransactions(state, selectedDate, currentMonth) {
       .sort((a, b) => b.id - a.id),
   )
 
-  const monthIncome = computed(() =>
-    monthTransactions.value
-      .filter((item) => item.type === 'income')
-      .reduce((sum, item) => sum + Number(item.amount), 0),
-  )
+  const transactionAmount = (item) => {
+    const amount = Number(item.amount)
+    return Number.isFinite(amount) ? amount : 0
+  }
+
+  const transactionMonth = (item) => String(item.date || '').slice(0, 7)
 
   const monthExpense = computed(() =>
     monthTransactions.value
       .filter((item) => item.type === 'expense')
-      .reduce((sum, item) => sum + Number(item.amount), 0),
+      .reduce((sum, item) => sum + transactionAmount(item), 0),
+  )
+
+  const incomeTransactions = computed(() => {
+    if (!state.settings.carryOverIncome) return monthTransactions.value
+
+    return state.transactions.filter((item) => {
+      const monthKey = transactionMonth(item)
+      return monthKey && monthKey <= currentMonth.value
+    })
+  })
+
+  const monthIncome = computed(() =>
+    incomeTransactions.value
+      .filter((item) => item.type === 'income')
+      .reduce((sum, item) => sum + transactionAmount(item), 0),
+  )
+
+  const monthTransfer = computed(() =>
+    monthTransactions.value
+      .filter((item) => item.type === 'transfer')
+      .reduce((sum, item) => sum + transactionAmount(item), 0),
   )
 
   const monthBalance = computed(() => monthIncome.value - monthExpense.value)
   const budgetLeft = computed(() => state.settings.monthlyBudget - monthExpense.value)
 
   function addTransaction() {
-    const amount = Number(transactionForm.amount)
+    const amount = Number(String(transactionForm.amount ?? '').replace(/\D/g, ''))
     if (amount <= 0) return
 
     state.transactions.push({
@@ -51,14 +77,17 @@ export function useTransactions(state, selectedDate, currentMonth) {
       title: transactionForm.subcategory || transactionForm.category,
       category: transactionForm.category,
       subcategory: transactionForm.subcategory,
+      assetName: transactionForm.assetName || defaultAssetName(),
       amount,
       memo: transactionForm.memo.trim(),
-      paymentMethod: transactionForm.paymentMethod,
+      paymentMethod: transactionForm.type === 'expense' ? transactionForm.paymentMethod || defaultPaymentMethod() : '',
     })
 
     transactionForm.amount = ''
     transactionForm.memo = ''
     transactionForm.date = selectedDate.value
+    transactionForm.assetName = transactionForm.assetName || defaultAssetName()
+    transactionForm.paymentMethod = transactionForm.paymentMethod || defaultPaymentMethod()
   }
 
   function removeTransaction(id) {
@@ -81,6 +110,7 @@ export function useTransactions(state, selectedDate, currentMonth) {
     monthExpense,
     monthIncome,
     monthTransactions,
+    monthTransfer,
     removeTransaction,
     selectedTransactions,
     transactionForm,

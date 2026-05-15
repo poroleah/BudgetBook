@@ -4,6 +4,10 @@ defineProps({
     type: Object,
     required: true,
   },
+  assetTypes: {
+    type: Array,
+    required: true,
+  },
   assets: {
     type: Array,
     required: true,
@@ -14,6 +18,10 @@ defineProps({
   },
   netWorth: {
     type: Number,
+    required: true,
+  },
+  paymentMethods: {
+    type: Array,
     required: true,
   },
   totalAssets: {
@@ -55,31 +63,40 @@ defineEmits(['add-asset', 'remove-asset', 'update-asset-balance'])
         <input v-model="assetForm.name" type="text" placeholder="자산 이름" />
         <div class="form-row">
           <select v-model="assetForm.type">
-            <option>은행</option>
-            <option>현금</option>
-            <option>저축</option>
-            <option>투자</option>
-            <option>카드</option>
-            <option>대출</option>
+            <option v-for="type in assetTypes" :key="type" :value="type">{{ type }}</option>
           </select>
           <input v-model="assetForm.balance" type="number" placeholder="잔액" />
         </div>
         <button class="primary-button" type="submit">추가</button>
       </form>
 
-      <div class="asset-list">
-        <article v-for="asset in assets" :key="asset.id" class="asset-card">
-          <div>
-            <span>{{ asset.type }}</span>
-            <strong>{{ asset.name }}</strong>
+      <div class="asset-list-panel">
+        <section class="payment-method-panel">
+          <div class="panel-heading">
+            <p>Payment</p>
+            <h2>결제수단 목록</h2>
           </div>
-          <input
-            :value="asset.balance"
-            type="number"
-            @input="$emit('update-asset-balance', asset.id, $event.target.value)"
-          />
-          <button type="button" @click="$emit('remove-asset', asset.id)">삭제</button>
-        </article>
+          <div class="payment-method-list">
+            <span v-for="method in paymentMethods" :key="method" class="payment-method-chip">
+              {{ method }}
+            </span>
+          </div>
+        </section>
+
+        <div class="asset-list">
+          <article v-for="asset in assets" :key="asset.id" class="asset-card">
+            <div>
+              <span>{{ asset.type }}</span>
+              <strong>{{ asset.name }}</strong>
+            </div>
+            <input
+              :value="asset.balance"
+              type="number"
+              @input="$emit('update-asset-balance', asset.id, $event.target.value)"
+            />
+            <button type="button" @click="$emit('remove-asset', asset.id)">삭제</button>
+          </article>
+        </div>
       </div>
     </div>
   </section>

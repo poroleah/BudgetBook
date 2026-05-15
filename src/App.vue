@@ -28,7 +28,10 @@ const defaultCategoryDetails = {
   기타: { type: 'expense', icon: '', subcategories: ['취미', '구독', '기타'] },
 }
 
+const defaultAssetTypes = ['은행', '현금', '저축', '투자', '대출']
+
 const initialState = {
+  id: 'book-default',
   transactions: [
     {
       id: 1,
@@ -61,11 +64,14 @@ const initialState = {
   assets: [
     { id: 1, name: '생활비 통장', type: '은행', balance: 1450000 },
     { id: 2, name: '비상금', type: '저축', balance: 700000 },
-    { id: 3, name: '이번 달 카드값', type: '카드', balance: -320000 },
+    { id: 3, name: '이번 달 카드값', type: '대출', balance: -320000 },
   ],
   settings: {
     bookName: '내 가계부',
+    assetTypes: defaultAssetTypes,
+    carryOverIncome: false,
     monthlyBudget: 1200000,
+    paymentMethods: ['체크카드', '신용카드', '현금', '계좌이체', '기타'],
     theme: 'light',
     weekStartsOn: 'sunday',
     categories: ['식비', '교통', '주거', '쇼핑', '월급', '이체', '기타'],
@@ -75,31 +81,115 @@ const initialState = {
 
 const savedState = localStorage.getItem('moneybook-state')
 const savedStateData = savedState ? JSON.parse(savedState) : {}
-const state = reactive({
-  ...initialState,
-  ...savedStateData,
-  settings: {
-    ...initialState.settings,
-    ...savedStateData.settings,
-    categoryDetails: {
-      ...initialState.settings.categoryDetails,
-      ...savedStateData.settings?.categoryDetails,
+
+function createBook(id = `book-${Date.now()}`, bookName = '새 가계부') {
+  return {
+    ...structuredClone(initialState),
+    id,
+    transactions: [],
+    assets: [],
+    settings: {
+      ...structuredClone(initialState.settings),
+      bookName,
+      monthlyBudget: 0,
     },
+  }
+}
+
+function normalizeBook(book) {
+  const normalized = {
+    ...structuredClone(initialState),
+    ...book,
+    id: book.id || `book-${Date.now()}`,
+    transactions: Array.isArray(book.transactions) ? book.transactions : [],
+    assets: Array.isArray(book.assets) ? book.assets : [],
+    settings: {
+      ...structuredClone(initialState.settings),
+      ...book.settings,
+      categoryDetails: {
+        ...structuredClone(initialState.settings.categoryDetails),
+        ...book.settings?.categoryDetails,
+      },
+    },
+  }
+
+  Object.entries(defaultCategoryDetails).forEach(([category, details]) => {
+    if (!normalized.settings.categories.includes(category)) {
+      normalized.settings.categories.push(category)
+    }
+    normalized.settings.categoryDetails[category] = {
+      ...details,
+      ...normalized.settings.categoryDetails[category],
+    }
+  })
+
+  normalized.assets.forEach((asset) => {
+    if (asset.type === '체크카드') {
+      asset.type = '은행'
+    }
+    if (asset.type === '카드' || asset.type === '신용카드') {
+      asset.type = '대출'
+    }
+  })
+
+  if (!Array.isArray(normalized.settings.assetTypes) || !normalized.settings.assetTypes.length) {
+    normalized.settings.assetTypes = [...defaultAssetTypes]
+  }
+
+  normalized.assets.forEach((asset) => {
+    if (asset.type && !normalized.settings.assetTypes.includes(asset.type)) {
+      normalized.settings.assetTypes.push(asset.type)
+    }
+  })
+
+  if (!Array.isArray(normalized.settings.paymentMethods) || !normalized.settings.paymentMethods.length) {
+    normalized.settings.paymentMethods = [...initialState.settings.paymentMethods]
+  }
+
+  if (normalized.settings.paymentMethods.includes('카드')) {
+    normalized.settings.paymentMethods = normalized.settings.paymentMethods.flatMap((method) =>
+      method === '카드' ? ['체크카드', '신용카드'] : method,
+    )
+  }
+
+  normalized.settings.paymentMethods = [...new Set(normalized.settings.paymentMethods)]
+
+  return normalized
+}
+
+const savedBooks = Array.isArray(savedStateData.books)
+  ? savedStateData.books
+  : [savedState ? { ...savedStateData, id: savedStateData.id || 'book-default' } : initialState]
+
+const state = reactive({
+  activeBookId: savedStateData.activeBookId || savedBooks[0]?.id || 'book-default',
+  books: savedBooks.map((book) => normalizeBook(book)),
+})
+
+const activeBook = computed(() => state.books.find((book) => book.id === state.activeBookId) || state.books[0])
+const bookState = reactive({
+  get transactions() {
+    return activeBook.value.transactions
+  },
+  set transactions(value) {
+    activeBook.value.transactions = value
+  },
+  get assets() {
+    return activeBook.value.assets
+  },
+  set assets(value) {
+    activeBook.value.assets = value
+  },
+  get settings() {
+    return activeBook.value.settings
+  },
+  set settings(value) {
+    activeBook.value.settings = value
   },
 })
 
-Object.entries(defaultCategoryDetails).forEach(([category, details]) => {
-  if (!state.settings.categories.includes(category)) {
-    state.settings.categories.push(category)
-  }
-  state.settings.categoryDetails[category] = {
-    ...details,
-    ...state.settings.categoryDetails[category],
-  }
-})
-
 const activeTab = ref('calendar')
-const { calendarDays, changeMonth, currentMonth, selectMonth, selectedDate } = useCalendar(state, today)
+const { calendarDays, changeMonth, currentMonth, selectMonth, selectedDate } = useCalendar(bookState, today)
 const {
   addTransaction,
   budgetLeft,
@@ -107,11 +197,12 @@ const {
   monthExpense,
   monthIncome,
   monthTransactions,
+  monthTransfer,
   removeTransaction,
   selectedTransactions,
   transactionForm,
   updateTransaction,
-} = useTransactions(state, selectedDate, currentMonth)
+} = useTransactions(bookState, selectedDate, currentMonth)
 
 const assetForm = reactive({
   name: '',
@@ -147,7 +238,7 @@ const {
   toggleBookPage,
   updateCategory,
   updateCategoryDetails,
-} = useCategories(state, transactionForm)
+} = useCategories(bookState, transactionForm)
 
 function selectTab(tabId) {
   activeTab.value = tabId
@@ -155,21 +246,21 @@ function selectTab(tabId) {
 }
 
 const { categorySummary, monthlyTrend, trendMax } = useAnalysis(
-  state,
+  bookState,
   currentMonth,
   monthTransactions,
   monthExpense,
 )
 
 const totalAssets = computed(() =>
-  state.assets
+  bookState.assets
     .filter((asset) => Number(asset.balance) > 0)
     .reduce((sum, asset) => sum + Number(asset.balance), 0),
 )
 
 const totalDebt = computed(() =>
   Math.abs(
-    state.assets
+    bookState.assets
       .filter((asset) => Number(asset.balance) < 0)
       .reduce((sum, asset) => sum + Number(asset.balance), 0),
   ),
@@ -180,57 +271,134 @@ const netWorth = computed(() => totalAssets.value - totalDebt.value)
 function addAsset() {
   if (!assetForm.name.trim() || assetForm.balance === '') return
 
-  state.assets.push({
-    id: Date.now(),
-    name: assetForm.name.trim(),
+  addAssetToActiveBook({
+    name: assetForm.name,
     type: assetForm.type,
-    balance: Number(assetForm.balance),
+    balance: assetForm.balance,
   })
 
   assetForm.name = ''
   assetForm.balance = ''
 }
 
+function addAssetToActiveBook(asset) {
+  if (!asset.name?.trim() || asset.balance === '') return
+  const assetType = asset.type || bookState.settings.assetTypes[0] || '은행'
+
+  if (!bookState.settings.assetTypes.includes(assetType)) {
+    bookState.settings.assetTypes.push(assetType)
+  }
+
+  bookState.assets.push({
+    id: Date.now(),
+    name: asset.name.trim(),
+    type: assetType,
+    balance: Number(asset.balance),
+  })
+}
+
 function removeAsset(id) {
-  state.assets = state.assets.filter((asset) => asset.id !== id)
+  bookState.assets = bookState.assets.filter((asset) => asset.id !== id)
 }
 
 function updateAssetBalance(id, value) {
-  const asset = state.assets.find((item) => item.id === id)
+  const asset = bookState.assets.find((item) => item.id === id)
   if (asset) asset.balance = Number(value)
+}
+
+function addPaymentMethod(method) {
+  const nextMethod = method.trim()
+  if (!nextMethod || bookState.settings.paymentMethods.includes(nextMethod)) return
+  bookState.settings.paymentMethods.push(nextMethod)
+}
+
+function addAssetType(type) {
+  const nextType = type.trim()
+  if (!nextType || bookState.settings.assetTypes.includes(nextType)) return
+  bookState.settings.assetTypes.push(nextType)
+}
+
+function syncTransactionFormWithActiveBook() {
+  const category = bookState.settings.categories[0] || ''
+  transactionForm.category = category
+  transactionForm.subcategory = bookState.settings.categoryDetails[category]?.subcategories?.[0] || ''
+  transactionForm.assetName = bookState.assets[0]?.name || ''
+  transactionForm.paymentMethod = bookState.settings.paymentMethods[0] || ''
+  transactionForm.amount = ''
+  transactionForm.memo = ''
+  transactionForm.date = selectedDate.value
+}
+
+function selectBook(bookId) {
+  if (state.activeBookId === bookId) return
+  state.activeBookId = bookId
+  syncTransactionFormWithActiveBook()
+  closeBookPage()
+}
+
+function addBook() {
+  const book = createBook(`book-${Date.now()}`, `새 가계부 ${state.books.length + 1}`)
+  state.books.push(normalizeBook(book))
+  state.activeBookId = book.id
+  syncTransactionFormWithActiveBook()
+  closeBookPage()
+}
+
+function deleteBook(bookId) {
+  if (state.books.length <= 1) return
+  const bookIndex = state.books.findIndex((book) => book.id === bookId)
+  if (bookIndex === -1) return
+
+  state.books.splice(bookIndex, 1)
+
+  if (state.activeBookId === bookId) {
+    state.activeBookId = state.books[Math.max(0, bookIndex - 1)]?.id || state.books[0].id
+    syncTransactionFormWithActiveBook()
+    closeBookPage()
+  }
 }
 </script>
 
 <template>
-  <main class="app-shell" :class="{ 'book-menu-open': isBookMenuOpen }" :data-theme="state.settings.theme">
+  <main class="app-shell" :class="{ 'book-menu-open': isBookMenuOpen }" :data-theme="bookState.settings.theme">
     <AppHeader
       v-if="!isBookMenuOpen"
       :active-book-page="activeBookPage"
       :active-tab="activeTab"
-      :balance="monthBalance"
-      :book-name="state.settings.bookName"
+      :active-book-id="state.activeBookId"
+      :book-name="bookState.settings.bookName"
+      :books="state.books"
       :currency="currency"
       :expense="monthExpense"
       :income="monthIncome"
+      :transfer="monthTransfer"
+      @add-book="addBook"
       @open-category="toggleBookPage('category')"
       @open-settings="toggleBookPage('settings')"
+      @select-book="selectBook"
     />
 
     <DatePage
       v-if="activeTab === 'calendar'"
       :active-book-page="activeBookPage"
+      :assets="bookState.assets"
+      :asset-types="bookState.settings.assetTypes"
       :calendar-days="calendarDays"
-      :categories="state.settings.categories"
-      :category-details="state.settings.categoryDetails"
+      :categories="bookState.settings.categories"
+      :category-details="bookState.settings.categoryDetails"
       :category-page-mode="categoryPageMode"
       :currency="currency"
       :current-month="currentMonth"
+      :payment-methods="bookState.settings.paymentMethods"
       :selected-date="selectedDate"
       :selected-transactions="selectedTransactions"
-      :settings="state.settings"
+      :settings="bookState.settings"
       :transaction-form="transactionForm"
-      :week-starts-on="state.settings.weekStartsOn"
+      :week-starts-on="bookState.settings.weekStartsOn"
+      @add-asset="addAssetToActiveBook"
+      @add-asset-type="addAssetType"
       @add-category="addCategory"
+      @add-payment-method="addPaymentMethod"
       @add-transaction="addTransaction"
       @change-month="changeMonth"
       @close-page="closeBookPage"
@@ -258,9 +426,11 @@ function updateAssetBalance(id, value) {
     <AssetView
       v-if="activeTab === 'assets' && !isBookMenuOpen"
       :asset-form="assetForm"
-      :assets="state.assets"
+      :assets="bookState.assets"
+      :asset-types="bookState.settings.assetTypes"
       :currency="currency"
       :net-worth="netWorth"
+      :payment-methods="bookState.settings.paymentMethods"
       :total-assets="totalAssets"
       :total-debt="totalDebt"
       @add-asset="addAsset"
@@ -270,9 +440,12 @@ function updateAssetBalance(id, value) {
 
     <SettingView
       v-if="activeTab === 'settings' && !isBookMenuOpen"
-      :categories="state.settings.categories"
-      :settings="state.settings"
+      :active-book-id="state.activeBookId"
+      :books="state.books"
+      :categories="bookState.settings.categories"
+      :settings="bookState.settings"
       @add-category="addCategory"
+      @delete-book="deleteBook"
     />
 
     <Nav

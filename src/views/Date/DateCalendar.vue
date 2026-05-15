@@ -3,6 +3,10 @@ import { computed, ref, watch } from 'vue'
 import DateAdd from './DateAdd.vue'
 
 const props = defineProps({
+  assets: {
+    type: Array,
+    required: true,
+  },
   calendarDays: {
     type: Array,
     required: true,
@@ -21,6 +25,10 @@ const props = defineProps({
   },
   currency: {
     type: Object,
+    required: true,
+  },
+  paymentMethods: {
+    type: Array,
     required: true,
   },
   selectedDate: {
@@ -76,16 +84,27 @@ const weekdayLabels = computed(() =>
     : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
 )
 
+const transactionAmount = (item) => {
+  const amount = Number(item.amount)
+  return Number.isFinite(amount) ? amount : 0
+}
+
 const selectedIncome = computed(() =>
   props.selectedTransactions
     .filter((item) => item.type === 'income')
-    .reduce((sum, item) => sum + Number(item.amount), 0),
+    .reduce((sum, item) => sum + transactionAmount(item), 0),
 )
 
 const selectedExpense = computed(() =>
   props.selectedTransactions
     .filter((item) => item.type === 'expense')
-    .reduce((sum, item) => sum + Number(item.amount), 0),
+    .reduce((sum, item) => sum + transactionAmount(item), 0),
+)
+
+const selectedTransfer = computed(() =>
+  props.selectedTransactions
+    .filter((item) => item.type === 'transfer')
+    .reduce((sum, item) => sum + transactionAmount(item), 0),
 )
 
 watch(
@@ -183,7 +202,7 @@ function categoryIcon(category) {
           <p>{{ selectedDate }}</p>
           <h2>거래 기록</h2>
         </div>
-        <div class="daily-summary" aria-label="선택 날짜 수입과 지출">
+        <div class="daily-summary" aria-label="선택 날짜 수입, 지출, 이체">
           <div class="daily-summary-item">
             <span>수입</span>
             <strong class="income">+{{ currency.format(selectedIncome) }}</strong>
@@ -191,6 +210,10 @@ function categoryIcon(category) {
           <div class="daily-summary-item">
             <span>지출</span>
             <strong class="expense">-{{ currency.format(selectedExpense) }}</strong>
+          </div>
+          <div class="daily-summary-item">
+            <span>이체</span>
+            <strong class="transfer">{{ currency.format(selectedTransfer) }}</strong>
           </div>
         </div>
       </div>
@@ -210,7 +233,7 @@ function categoryIcon(category) {
             <span class="transaction-category-icon" aria-hidden="true">{{ categoryIcon(item.category) }}</span>
             <div>
               <strong>{{ item.subcategory || item.title }}</strong>
-              <span>{{ [item.paymentMethod, item.memo].filter(Boolean).join(' | ') || '-' }}</span>
+              <span>{{ [item.assetName, item.paymentMethod, item.memo].filter(Boolean).join(' | ') || '-' }}</span>
             </div>
           </div>
           <div class="amount-line">
@@ -226,8 +249,10 @@ function categoryIcon(category) {
 
     <DateAdd
       ref="dateAdd"
+      :assets="assets"
       :categories="categories"
       :category-details="categoryDetails"
+      :payment-methods="paymentMethods"
       :selected-date="selectedDate"
       :transaction-form="transactionForm"
       @add-transaction="$emit('add-transaction')"

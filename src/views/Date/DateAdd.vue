@@ -3,12 +3,20 @@ import { computed, ref, watch } from 'vue'
 import PageHeader from '../../components/PageHeader.vue'
 
 const props = defineProps({
+  assets: {
+    type: Array,
+    required: true,
+  },
   categories: {
     type: Array,
     required: true,
   },
   categoryDetails: {
     type: Object,
+    required: true,
+  },
+  paymentMethods: {
+    type: Array,
     required: true,
   },
   selectedDate: {
@@ -27,7 +35,6 @@ const isEntryModalOpen = ref(false)
 const isDatePickerOpen = ref(false)
 const openOptionMenu = ref('')
 const editingTransactionId = ref(null)
-const paymentMethods = ['카드', '현금', '계좌이체']
 const pad = (value) => String(value).padStart(2, '0')
 const today = new Date()
 const todayKey = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
@@ -42,22 +49,58 @@ const subcategoryOptions = computed(() =>
   props.categoryDetails[props.transactionForm.category]?.subcategories || ['기본'],
 )
 
+const assetOptions = computed(() =>
+  props.assets
+    .map((asset) => asset.name?.trim())
+    .filter(Boolean),
+)
+
+const paymentMethodOptions = computed(() =>
+  props.paymentMethods
+    .map((method) => method?.trim())
+    .filter(Boolean),
+)
+
+const defaultAssetName = computed(() => assetOptions.value[0] || '')
+const defaultPaymentMethod = computed(() => paymentMethodOptions.value[0] || '')
+
+const assetFieldLabel = computed(() => {
+  if (props.transactionForm.type === 'income') return '입금 자산'
+  if (props.transactionForm.type === 'transfer') return '이체 자산'
+  return '사용 자산'
+})
+
 const categorySelectionLabel = computed(() => {
   if (!props.transactionForm.category) return '카테고리'
   if (!props.transactionForm.subcategory) return props.transactionForm.category
   return `${props.transactionForm.category} > ${props.transactionForm.subcategory}`
 })
 
+function digitsOnly(value) {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
 const formattedAmount = computed({
   get() {
-    const amount = String(props.transactionForm.amount ?? '').replace(/\D/g, '')
+    const amount = digitsOnly(props.transactionForm.amount)
     return amount ? new Intl.NumberFormat('ko-KR').format(Number(amount)) : ''
   },
   set(value) {
-    const amount = String(value).replace(/\D/g, '')
+    const amount = digitsOnly(value)
     props.transactionForm.amount = amount ? Number(amount) : ''
   },
 })
+
+function preventNonNumericAmount(event) {
+  if (event.data && /\D/.test(event.data)) {
+    event.preventDefault()
+  }
+}
+
+function sanitizeAmountInput(event) {
+  const amount = digitsOnly(event.target.value)
+  props.transactionForm.amount = amount ? Number(amount) : ''
+}
 
 const dateCalendarDays = computed(() => {
   const [year, month] = dateCalendarMonth.value.split('-').map(Number)
@@ -94,8 +137,44 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => props.transactionForm.type,
+  (type) => {
+    if (!assetOptions.value.includes(props.transactionForm.assetName)) {
+      props.transactionForm.assetName = defaultAssetName.value
+    }
+    if (type !== 'expense' && openOptionMenu.value === 'paymentMethod') {
+      openOptionMenu.value = ''
+    }
+    if (type === 'expense' && !paymentMethodOptions.value.includes(props.transactionForm.paymentMethod)) {
+      props.transactionForm.paymentMethod = defaultPaymentMethod.value
+    }
+  },
+)
+
+watch(
+  assetOptions,
+  (assets) => {
+    if (!assets.includes(props.transactionForm.assetName)) {
+      props.transactionForm.assetName = defaultAssetName.value
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  paymentMethodOptions,
+  (methods) => {
+    if (props.transactionForm.type === 'expense' && !methods.includes(props.transactionForm.paymentMethod)) {
+      props.transactionForm.paymentMethod = defaultPaymentMethod.value
+    }
+  },
+  { immediate: true },
+)
+
 function submitTransaction() {
-  const canSubmit = Number(props.transactionForm.amount) > 0
+  const amount = Number(digitsOnly(props.transactionForm.amount))
+  const canSubmit = amount > 0
   if (!canSubmit) return
 
   if (editingTransactionId.value) {
@@ -106,9 +185,10 @@ function submitTransaction() {
       title: props.transactionForm.subcategory || props.transactionForm.category,
       category: props.transactionForm.category,
       subcategory: props.transactionForm.subcategory,
-      amount: Number(props.transactionForm.amount),
+      amount,
+      assetName: props.transactionForm.assetName || defaultAssetName.value,
       memo: props.transactionForm.memo.trim(),
-      paymentMethod: props.transactionForm.paymentMethod,
+      paymentMethod: props.transactionForm.type === 'expense' ? props.transactionForm.paymentMethod || defaultPaymentMethod.value : '',
     })
   } else {
     emit('add-transaction')
@@ -150,6 +230,12 @@ function resetTransactionForm() {
 function openAddModal() {
   editingTransactionId.value = null
   props.transactionForm.date = props.selectedDate
+  if (!assetOptions.value.includes(props.transactionForm.assetName)) {
+    props.transactionForm.assetName = defaultAssetName.value
+  }
+  if (props.transactionForm.type === 'expense' && !paymentMethodOptions.value.includes(props.transactionForm.paymentMethod)) {
+    props.transactionForm.paymentMethod = defaultPaymentMethod.value
+  }
   isDatePickerOpen.value = false
   openOptionMenu.value = ''
   isEntryModalOpen.value = true
@@ -174,9 +260,10 @@ function openTransaction(transaction) {
   props.transactionForm.amount = transaction.amount
   props.transactionForm.category = transaction.category
   props.transactionForm.subcategory = transaction.subcategory || ''
+  props.transactionForm.assetName = transaction.assetName || transaction.asset || defaultAssetName.value
   props.transactionForm.date = transaction.date
   props.transactionForm.memo = transaction.memo || ''
-  props.transactionForm.paymentMethod = transaction.paymentMethod || '카드'
+  props.transactionForm.paymentMethod = transaction.paymentMethod || defaultPaymentMethod.value
   dateCalendarMonth.value = transaction.date.slice(0, 7)
   isDatePickerOpen.value = false
   openOptionMenu.value = ''
@@ -245,7 +332,14 @@ defineExpose({
 
         <label class="entry-field">
           <span>금액</span>
-          <input v-model="formattedAmount" type="text" inputmode="numeric" placeholder="0" />
+          <input
+            v-model="formattedAmount"
+            type="text"
+            inputmode="numeric"
+            placeholder="0"
+            @beforeinput="preventNonNumericAmount"
+            @input="sanitizeAmountInput"
+          />
         </label>
 
         <div class="entry-field">
@@ -323,7 +417,7 @@ defineExpose({
           </Transition>
         </div>
 
-        <div class="entry-field">
+        <div v-if="transactionForm.type === 'expense'" class="entry-field">
           <span>결제수단</span>
           <div class="entry-select">
             <button
@@ -332,19 +426,47 @@ defineExpose({
               :aria-expanded="openOptionMenu === 'paymentMethod'"
               @click="toggleOptionMenu('paymentMethod')"
             >
-              <span>{{ transactionForm.paymentMethod }}</span>
+              <span>{{ transactionForm.paymentMethod || '결제수단 없음' }}</span>
               <span class="entry-select-chevron" aria-hidden="true"></span>
             </button>
             <Transition name="entry-dropdown-slide">
               <div v-if="openOptionMenu === 'paymentMethod'" class="entry-select-menu">
                 <button
-                  v-for="method in paymentMethods"
+                  v-for="method in paymentMethodOptions"
                   :key="method"
                   type="button"
                   :class="{ active: method === transactionForm.paymentMethod }"
                   @click="selectOption('paymentMethod', method)"
                 >
                 {{ method }}
+                </button>
+              </div>
+            </Transition>
+          </div>
+        </div>
+
+        <div class="entry-field">
+          <span>{{ assetFieldLabel }}</span>
+          <div class="entry-select">
+            <button
+              class="entry-select-button"
+              type="button"
+              :aria-expanded="openOptionMenu === 'assetName'"
+              @click="toggleOptionMenu('assetName')"
+            >
+              <span>{{ transactionForm.assetName || '자산 없음' }}</span>
+              <span class="entry-select-chevron" aria-hidden="true"></span>
+            </button>
+            <Transition name="entry-dropdown-slide">
+              <div v-if="openOptionMenu === 'assetName'" class="entry-select-menu">
+                <button
+                  v-for="asset in assetOptions"
+                  :key="asset"
+                  type="button"
+                  :class="{ active: asset === transactionForm.assetName }"
+                  @click="selectOption('assetName', asset)"
+                >
+                  {{ asset }}
                 </button>
               </div>
             </Transition>

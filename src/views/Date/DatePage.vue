@@ -8,6 +8,14 @@ defineProps({
     type: String,
     required: true,
   },
+  assets: {
+    type: Array,
+    required: true,
+  },
+  assetTypes: {
+    type: Array,
+    required: true,
+  },
   calendarDays: {
     type: Array,
     required: true,
@@ -30,6 +38,10 @@ defineProps({
   },
   currentMonth: {
     type: String,
+    required: true,
+  },
+  paymentMethods: {
+    type: Array,
     required: true,
   },
   selectedDate: {
@@ -55,7 +67,10 @@ defineProps({
 })
 
 defineEmits([
+  'add-asset',
+  'add-asset-type',
   'add-category',
+  'add-payment-method',
   'add-transaction',
   'change-month',
   'close-page',
@@ -73,15 +88,17 @@ defineEmits([
 
 <template>
   <section
-    v-if="!activeBookPage"
+    v-show="!activeBookPage"
     class="calendar-page-shell"
   >
     <DateCalendar
+      :assets="assets"
       :calendar-days="calendarDays"
       :categories="categories"
       :category-details="categoryDetails"
       :current-month="currentMonth"
       :currency="currency"
+      :payment-methods="paymentMethods"
       :selected-date="selectedDate"
       :selected-transactions="selectedTransactions"
       :transaction-form="transactionForm"
@@ -124,8 +141,13 @@ defineEmits([
     >
       <DateSetting
         class="calendar-settings-page"
+        :assets="assets"
+        :asset-types="assetTypes"
+        :payment-methods="paymentMethods"
         :settings="settings"
-        @add-category="$emit('add-category', $event)"
+        @add-asset="$emit('add-asset', $event)"
+        @add-asset-type="$emit('add-asset-type', $event)"
+        @add-payment-method="$emit('add-payment-method', $event)"
         @close-page="$emit('close-page')"
       />
     </section>
