@@ -1,5 +1,29 @@
 @import './base.css';
 
+@font-face {
+  font-family: 'Elice';
+  src: url('./Fonts/Elice.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'EliceDX';
+  src: url('./Fonts/EliceDX.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Nanum';
+  src: url('./Fonts/Nanum.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -8,7 +32,7 @@
 body {
   min-width: 320px;
   margin: 0;
-  background: #eef2f5;
+  background: #f8f9fa;
   color: #17202a;
   font-family:
     Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -41,6 +65,7 @@ button:active {
 
 #app {
   min-height: 100vh;
+  background: #f8f9fa;
 }
 
 .app-shell {
@@ -61,7 +86,7 @@ button:active {
 }
 
 .app-shell.book-menu-open {
-  padding-top: 0;
+  padding: 0;
 }
 
 .topbar {
@@ -102,7 +127,7 @@ button:active {
   max-width: 100%;
   border: 0;
   background: transparent;
-  padding: 0;
+  padding: 4px 1px 3px;
   color: inherit;
   text-align: left;
 }
@@ -276,6 +301,19 @@ button:active {
   align-items: center;
   gap: 8px;
   min-height: 44px;
+}
+
+.settings-page-header {
+  grid-template-columns: 22px 1fr 22px;
+}
+
+.settings-page-header .category-icon-button {
+  justify-self: start;
+  width: 22px;
+}
+
+.settings-page-header .back-button span {
+  transform: rotate(45deg);
 }
 
 .page-header-title {
@@ -1517,19 +1555,17 @@ select {
 
 .calendar-standalone-page {
   width: 100%;
-  min-height: calc(100vh - 96px);
+  min-height: 100vh;
   margin: 0 auto;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(238, 242, 245, 0.94)),
-    #eef2f5;
+  background: #fff;
 }
 
 .calendar-settings-page {
   position: relative;
   z-index: 1;
-  width: min(1180px, 100%);
-  min-height: calc(100vh - 96px);
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1568,7 +1604,7 @@ select {
   position: fixed;
   top: 0;
   right: 0;
-  bottom: 96px;
+  bottom: 0;
   left: 0;
   z-index: 50;
   width: auto;
@@ -1775,11 +1811,13 @@ select {
 .day-cell {
   position: relative;
   display: grid;
-  place-items: center;
-  min-height: 40px;
+  align-content: start;
+  justify-items: center;
+  gap: 1px;
+  min-height: 58px;
   border: 0;
   border-radius: 0;
-  padding: 0;
+  padding: 4px 1px 3px;
   background: transparent;
   color: inherit;
   text-align: center;
@@ -1870,28 +1908,32 @@ select {
   color: #8aa7bb;
 }
 
-.day-cell.has-transaction::after {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: #c9d1d9;
-  content: '';
-  transform: translateX(-50%);
-}
-
-.day-cell.has-transaction.today::after,
-.day-cell.has-transaction.selected::after {
-  bottom: -3px;
+.day-amounts {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  min-height: 22px;
+  padding: 0 1px;
 }
 
 .day-cell small {
+  display: block;
   overflow: hidden;
   max-width: 100%;
   text-overflow: ellipsis;
+  color: #687789;
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1.05;
   white-space: nowrap;
+}
+
+.day-cell small.income {
+  color: #2f8f6f;
+}
+
+.day-cell small.expense {
+  color: #c95a4d;
 }
 
 .entry-form {
@@ -1921,6 +1963,36 @@ select {
     inset 0 -1px 0 rgba(23, 32, 42, 0.04);
   backdrop-filter: blur(14px) saturate(1.25);
   -webkit-backdrop-filter: blur(14px) saturate(1.25);
+}
+
+.repeat-toggle-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 44px;
+}
+
+.repeat-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.repeat-option-field,
+.repeat-end-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.repeat-option-field > span,
+.repeat-end-field span {
+  color: #687789;
+  font-size: 0.78rem;
+}
+
+.repeat-end-field input {
+  width: 100%;
 }
 
 .entry-select {
@@ -2247,7 +2319,7 @@ select {
   display: grid;
   align-items: stretch;
   justify-items: center;
-  padding: 10px 0 0;
+  padding: 0;
   overflow-y: auto;
   background: transparent;
 }
@@ -2260,13 +2332,13 @@ select {
   position: relative;
   z-index: 1;
   width: 100%;
-  min-height: calc(100vh - 10px);
+  min-height: 100vh;
   border: 0;
   border-radius: 30px 30px 0 0;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(238, 242, 245, 0.94)),
     #eef2f5;
-  padding: 28px 0;
+  padding: 12px 0 28px;
   box-shadow: 0 -12px 34px rgba(23, 32, 42, 0.12);
   overflow: hidden;
   backdrop-filter: none;
@@ -2814,6 +2886,64 @@ select {
   grid-template-columns: minmax(0, 620px);
 }
 
+.settings-page-title {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-page-title h1 {
+  margin: 0;
+  color: #17202a;
+  font-size: 1.55rem;
+  font-weight: 650;
+}
+
+.book-select-panel {
+  gap: 12px;
+}
+
+.book-select-item {
+  padding: 0;
+  overflow: hidden;
+}
+
+.book-select-item.active {
+  border-color: rgba(47, 111, 203, 0.48);
+  background:
+    linear-gradient(180deg, rgba(242, 247, 255, 0.86), rgba(232, 240, 250, 0.58)),
+    rgba(255, 255, 255, 0.68);
+}
+
+.book-select-button {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  min-height: 58px;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.book-select-button span {
+  color: #687789;
+  font-size: 0.78rem;
+}
+
+.book-select-button strong {
+  overflow-wrap: anywhere;
+  color: #17202a;
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.book-delete-button {
+  margin-right: 6px;
+}
+
 .settings-panel {
   display: grid;
   gap: 18px;
@@ -2939,6 +3069,17 @@ select {
 
 .app-shell[data-theme='dark'] .book-delete-item strong {
   color: #f4f6f8;
+}
+
+.app-shell[data-theme='dark'] .settings-page-title h1 {
+  color: #f4f6f8;
+}
+
+.app-shell[data-theme='dark'] .book-select-item.active {
+  border-color: rgba(115, 198, 166, 0.46);
+  background:
+    linear-gradient(180deg, rgba(71, 129, 106, 0.26), rgba(42, 48, 57, 0.42)),
+    rgba(42, 48, 57, 0.48);
 }
 
 .app-shell[data-theme='dark'] .setting-section-divider {
@@ -3321,6 +3462,271 @@ select {
   color: #aeb8c4;
 }
 
+/* Flat surface overrides. Bottom navigation keeps its glass treatment. */
+.app-shell {
+  background: #f4f6f8;
+}
+
+.app-shell :where(
+  .book-switcher-menu,
+  .book-menu-panel,
+  .category-page-panel,
+  .calendar-panel,
+  .side-panel,
+  .chart-panel,
+  .settings-panel,
+  .metric,
+  .asset-summary,
+  .asset-card,
+  .entry-modal,
+  .transaction-item,
+  .payment-method-panel,
+  .entry-date-calendar,
+  .month-picker-panel,
+  .setting-dropdown-panel,
+  .setting-type-menu,
+  .entry-select-menu,
+  .book-delete-item,
+  .subcategory-chip,
+  .payment-method-chip,
+  .setting-list-chip,
+  .floating-add-button,
+  .entry-action-button,
+  .menu-button,
+  .month-title-button,
+  .month-option-grid button,
+  .week-start-options,
+  .segmented,
+  .entry-field input,
+  .entry-field select,
+  .entry-date-row,
+  .entry-link-row,
+  .entry-select-button,
+  .setting-dropdown-toggle,
+  .setting-type-button,
+  .setting-inline-form input,
+  .setting-inline-form select,
+  .toggle-switch,
+  .day-number,
+  .transaction-category-icon,
+  .bars,
+  .progress-track,
+  .chip-list span
+) {
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell :where(
+  .book-menu-panel,
+  .category-page-panel,
+  .calendar-panel,
+  .side-panel,
+  .chart-panel,
+  .settings-panel,
+  .metric,
+  .asset-summary,
+  .asset-card,
+  .entry-modal,
+  .transaction-item,
+  .payment-method-panel,
+  .entry-date-calendar,
+  .month-picker-panel,
+  .setting-dropdown-panel,
+  .setting-type-menu,
+  .entry-select-menu,
+  .book-delete-item
+) {
+  border-color: #dfe5ec;
+  background: #ffffff;
+}
+
+.app-shell :where(
+  input,
+  select,
+  .entry-field input,
+  .entry-field select,
+  .entry-date-row,
+  .entry-link-row,
+  .entry-select-button,
+  .setting-dropdown-toggle,
+  .setting-type-button,
+  .setting-inline-form input,
+  .setting-inline-form select,
+  .month-title-button,
+  .month-option-grid button,
+  .modal-actions > button:first-child
+) {
+  border-color: #d7dee7;
+  background: #ffffff;
+}
+
+.app-shell :where(
+  .menu-button,
+  .entry-action-button,
+  .floating-add-button,
+  .payment-method-chip,
+  .setting-list-chip,
+  .subcategory-chip,
+  .transaction-category-icon,
+  .week-start-options,
+  .segmented,
+  .bars,
+  .progress-track,
+  .chip-list span
+) {
+  border-color: #dfe5ec;
+  background: #eef2f5;
+}
+
+.app-shell :where(
+  .segmented-indicator,
+  .week-start-indicator,
+  .toggle-switch,
+  .day-cell.selected .day-number,
+  .calendar-toolbar .month-option-grid button.active,
+  .book-select-item.active,
+  .book-switcher-item.active,
+  .book-switcher-item:hover,
+  .book-switcher-add:hover,
+  .setting-type-menu button.active,
+  .setting-type-menu button:hover,
+  .entry-select-menu button.active,
+  .entry-select-menu button:hover
+) {
+  background: #e4eaf1;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell .day-cell.today:not(.selected) .day-number {
+  border-color: #9aa6b2;
+  background: #ffffff;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell .day-cell.selected.today .day-number {
+  border-color: #9aa6b2;
+  background: #e4eaf1;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.app-shell .toggle-switch::after {
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] {
+  background: #14171c;
+}
+
+.app-shell[data-theme="dark"] :where(
+  .book-menu-panel,
+  .category-page-panel,
+  .calendar-panel,
+  .side-panel,
+  .chart-panel,
+  .settings-panel,
+  .metric,
+  .asset-summary,
+  .asset-card,
+  .entry-modal,
+  .transaction-item,
+  .payment-method-panel,
+  .entry-date-calendar,
+  .month-picker-panel,
+  .setting-dropdown-panel,
+  .setting-type-menu,
+  .entry-select-menu,
+  .book-delete-item
+) {
+  border-color: #303743;
+  background: #1f242c;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] :where(
+  input,
+  select,
+  .entry-field input,
+  .entry-field select,
+  .entry-date-row,
+  .entry-link-row,
+  .entry-select-button,
+  .setting-dropdown-toggle,
+  .setting-type-button,
+  .setting-inline-form input,
+  .setting-inline-form select,
+  .month-title-button,
+  .month-option-grid button,
+  .modal-actions > button:first-child
+) {
+  border-color: #303743;
+  background: #252b34;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] :where(
+  .menu-button,
+  .entry-action-button,
+  .floating-add-button,
+  .payment-method-chip,
+  .setting-list-chip,
+  .subcategory-chip,
+  .transaction-category-icon,
+  .week-start-options,
+  .segmented,
+  .bars,
+  .progress-track,
+  .chip-list span
+) {
+  border-color: #303743;
+  background: #252b34;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] :where(
+  .segmented-indicator,
+  .week-start-indicator,
+  .toggle-switch,
+  .day-cell.selected .day-number,
+  .calendar-toolbar .month-option-grid button.active,
+  .book-select-item.active,
+  .book-switcher-item.active,
+  .book-switcher-item:hover,
+  .book-switcher-add:hover,
+  .setting-type-menu button.active,
+  .setting-type-menu button:hover,
+  .entry-select-menu button.active,
+  .entry-select-menu button:hover
+) {
+  background: #343b46;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] .day-cell.today:not(.selected) .day-number {
+  border-color: #596474;
+  background: #252b34;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] .day-cell.selected.today .day-number {
+  border-color: #596474;
+  background: #343b46;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] .toggle-switch::after {
+  background: #f4f6f8;
+  box-shadow: none;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     padding: 22px 14px 94px;
@@ -3333,17 +3739,17 @@ select {
 
   .calendar-standalone-page.calendar-settings-drawer-leave-active {
     right: 0;
-    bottom: 94px;
+    bottom: 0;
     left: 0;
-    padding: 0 14px;
+    padding: 0;
   }
 
   .entry-modal-layer {
-    padding: 10px 0 0;
+    padding: 0;
   }
 
   .entry-modal {
-    padding-top: 22px;
+    padding-top: 12px;
     padding-bottom: 22px;
   }
 
@@ -3373,8 +3779,8 @@ select {
   }
 
   .day-cell {
-    min-height: 40px;
-    padding: 0;
+    min-height: 54px;
+    padding: 3px 1px 2px;
   }
 
 }
@@ -3391,13 +3797,17 @@ select {
   }
 
   .day-cell {
-    min-height: 38px;
+    min-height: 50px;
   }
 
   .day-number {
-    width: 31px;
-    height: 31px;
-    font-size: 0.96rem;
+    width: 28px;
+    height: 28px;
+    font-size: 0.88rem;
+  }
+
+  .day-cell small {
+    font-size: 0.58rem;
   }
 
   .form-row {
@@ -3444,4 +3854,311 @@ select {
     height: 36px;
   }
 
+}
+/* Final flat override: keep bottom navigation glass only. */
+.app-shell { background: #f8f9fa !important; }
+.app-shell[data-theme="dark"] { background: #14171c !important; }
+.app-shell *:not(.bottom-tabs):not(.bottom-tabs *):not(.bottom-tab-indicator) { box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.app-shell :where(.book-switcher-menu, .book-menu-panel, .category-page-panel, .calendar-standalone-page, .calendar-settings-page, .calendar-panel, .side-panel, .chart-panel, .settings-panel, .metric, .asset-summary, .asset-card, .entry-modal, .transaction-item, .payment-method-panel, .entry-date-calendar, .month-picker-panel, .setting-dropdown-panel, .setting-type-menu, .entry-select-menu, .book-delete-item) { background: #fff !important; border-color: #dfe5ec !important; }
+.app-shell :where(input, select, textarea, .entry-field input, .entry-field select, .entry-date-row, .entry-link-row, .entry-select-button, .setting-dropdown-toggle, .setting-type-button, .setting-inline-form input, .setting-inline-form select, .month-title-button, .month-option-grid button, .modal-actions > button:first-child) { background: #fff !important; border-color: #d7dee7 !important; }
+.app-shell :where(.menu-button, .entry-action-button, .floating-add-button, .payment-method-chip, .setting-list-chip, .subcategory-chip, .transaction-category-icon, .week-start-options, .segmented, .bars, .progress-track, .chip-list span) { background: #eef2f5 !important; border-color: #dfe5ec !important; }
+.app-shell :where(.segmented-indicator, .week-start-indicator, .toggle-switch, .day-cell.selected .day-number, .calendar-toolbar .month-option-grid button.active, .book-select-item.active, .book-switcher-item.active, .book-switcher-item:hover, .book-switcher-add:hover, .setting-type-menu button.active, .setting-type-menu button:hover, .entry-select-menu button.active, .entry-select-menu button:hover) { background: #e4eaf1 !important; }
+.app-shell .calendar-standalone-page, .app-shell .calendar-settings-page { min-height: 100vh !important; }
+.app-shell .calendar-design .day-cell.today:not(.selected) .day-number { background: #f8f9fa !important; border: 0 !important; }
+.app-shell .calendar-design .day-cell.selected .day-number { background: transparent !important; border: 2px solid #f8f9fa !important; color: inherit !important; }
+.app-shell .toggle-switch::after { background: #fff !important; box-shadow: none !important; }
+.app-shell[data-theme="dark"] :where(.book-switcher-menu, .book-menu-panel, .category-page-panel, .calendar-standalone-page, .calendar-settings-page, .calendar-panel, .side-panel, .chart-panel, .settings-panel, .metric, .asset-summary, .asset-card, .entry-modal, .transaction-item, .payment-method-panel, .entry-date-calendar, .month-picker-panel, .setting-dropdown-panel, .setting-type-menu, .entry-select-menu, .book-delete-item) { background: #1f242c !important; border-color: #303743 !important; }
+.app-shell[data-theme="dark"] :where(input, select, textarea, .entry-field input, .entry-field select, .entry-date-row, .entry-link-row, .entry-select-button, .setting-dropdown-toggle, .setting-type-button, .setting-inline-form input, .setting-inline-form select, .month-title-button, .month-option-grid button, .modal-actions > button:first-child) { background: #252b34 !important; border-color: #303743 !important; }
+.app-shell[data-theme="dark"] :where(.menu-button, .entry-action-button, .floating-add-button, .payment-method-chip, .setting-list-chip, .subcategory-chip, .transaction-category-icon, .week-start-options, .segmented, .bars, .progress-track, .chip-list span) { background: #252b34 !important; border-color: #303743 !important; }
+.app-shell[data-theme="dark"] :where(.segmented-indicator, .week-start-indicator, .toggle-switch, .day-cell.selected .day-number, .calendar-toolbar .month-option-grid button.active, .book-select-item.active, .book-switcher-item.active, .book-switcher-item:hover, .book-switcher-add:hover, .setting-type-menu button.active, .setting-type-menu button:hover, .entry-select-menu button.active, .entry-select-menu button:hover) { background: #343b46 !important; }
+.app-shell[data-theme="dark"] .day-cell.today:not(.selected) .day-number { background: #252b34 !important; border-color: #596474 !important; }
+.app-shell[data-theme="dark"] .day-cell.selected.today .day-number { background: #343b46 !important; border-color: #596474 !important; }
+.app-shell[data-theme="dark"] .toggle-switch::after { background: #f4f6f8 !important; box-shadow: none !important; }
+
+.app-shell .compact-summary { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+.app-shell .category-type-tabs {
+  border: 1px solid #dfe5ec !important;
+  background: #ffffff !important;
+}
+
+.app-shell .category-icon-bubble,
+.app-shell .category-icon-editor,
+.app-shell .subcategory-select-icon {
+  border: 1px solid #dfe5ec !important;
+  background: #ffffff !important;
+}
+
+.app-shell .category-grid-item:focus-visible .category-icon-bubble {
+  outline: 2px solid #9aa6b2;
+  outline-offset: 3px;
+}
+
+.app-shell[data-theme='dark'] .category-type-tabs,
+.app-shell[data-theme='dark'] .category-icon-bubble,
+.app-shell[data-theme='dark'] .category-icon-editor,
+.app-shell[data-theme='dark'] .subcategory-select-icon {
+  border: 0 !important;
+  background: #1f242c !important;
+}
+
+.app-shell .calendar-panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.app-shell[data-theme='dark'] .calendar-panel {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.app-shell .topbar { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+.app-shell .month-title-button {
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: #17202a !important;
+  font-weight: 700;
+}
+
+.app-shell[data-theme='dark'] .month-title-button {
+  color: #f4f6f8 !important;
+  background: transparent !important;
+}
+
+.app-shell .category-type-tabs {
+  border: 0 !important;
+  background: transparent !important;
+  padding-inline: 0 !important;
+}
+
+.app-shell .calendar-page-shell,
+.app-shell .calendar-screen {
+  background: #f4f6f8 !important;
+}
+
+.app-shell[data-theme='dark'] .calendar-page-shell,
+.app-shell[data-theme='dark'] .calendar-screen {
+  background: #14171c !important;
+}
+
+.app-shell .calendar-page-shell,
+.app-shell .calendar-screen {
+  background: #ffffff !important;
+}
+
+.app-shell[data-theme='dark'] .calendar-page-shell,
+.app-shell[data-theme='dark'] .calendar-screen {
+  background: #1f242c !important;
+}
+
+.app-shell,
+.app-shell .calendar-page-shell,
+.app-shell .calendar-screen,
+.app-shell .screen,
+.app-shell .calendar-standalone-page,
+.app-shell .calendar-settings-page {
+  background: #ffffff !important;
+}
+
+.app-shell[data-theme='dark'],
+.app-shell[data-theme='dark'] .calendar-page-shell,
+.app-shell[data-theme='dark'] .calendar-screen,
+.app-shell[data-theme='dark'] .screen,
+.app-shell[data-theme='dark'] .calendar-standalone-page,
+.app-shell[data-theme='dark'] .calendar-settings-page {
+  background: #1f242c !important;
+}
+
+.app-shell .transaction-heading {
+  padding-top: 12px;
+  border-top: 1px solid rgba(223, 229, 236, 0.72);
+}
+
+.app-shell[data-theme='dark'] .transaction-heading {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+.app-shell .category-page-panel {
+  border-top: 1px solid #dfe5ec !important;
+}
+
+.app-shell[data-theme='dark'] .category-page-panel {
+  border-top-color: #303743 !important;
+}
+
+.app-shell .calendar-standalone-page {
+  position: relative;
+}
+
+.app-shell .calendar-standalone-page::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 5;
+  height: 1px;
+  background: #dfe5ec;
+  content: '';
+  pointer-events: none;
+}
+
+.app-shell[data-theme='dark'] .calendar-standalone-page::before {
+  background: #303743;
+}
+
+.app-shell .category-type-tabs,
+.app-shell .entry-type-tabs,
+.app-shell .setting-type-tabs {
+  border: 1px solid #dfe5ec !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  padding: 7px !important;
+}
+
+.app-shell .category-type-indicator {
+  top: 7px !important;
+  bottom: 7px !important;
+  left: 7px !important;
+  width: calc((100% - 22px) / 3) !important;
+}
+
+.app-shell[data-theme='dark'] .category-type-tabs,
+.app-shell[data-theme='dark'] .entry-type-tabs,
+.app-shell[data-theme='dark'] .setting-type-tabs {
+  border-color: #303743 !important;
+  background: #1f242c !important;
+}
+
+.app-shell .category-type-tabs,
+.app-shell .entry-type-tabs,
+.app-shell .setting-type-tabs {
+  padding: 4px !important;
+}
+
+.app-shell .category-type-tabs button,
+.app-shell .entry-type-tabs button,
+.app-shell .setting-type-tabs button {
+  min-height: 38px !important;
+  font-size: 0.94rem !important;
+}
+
+.app-shell .category-type-indicator {
+  top: 4px !important;
+  bottom: 4px !important;
+  left: 4px !important;
+  width: calc((100% - 14px) / 3) !important;
+}
+
+
+/* Asset management functional layout */
+.assets-screen { gap: 20px; }
+.asset-feature-section { display: grid; gap: 16px; border: 1px solid #dfe5ec; border-radius: 8px; background: #fff; padding: 18px; }
+.asset-feature-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.asset-feature-heading p, .asset-feature-heading h2, .asset-feature-form h3, .asset-account-card h3 { margin: 0; }
+.asset-feature-heading p { color: #687789; font-size: 0.78rem; }
+.asset-feature-summary { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; }
+.asset-feature-summary span { color: #687789; font-size: 0.84rem; }
+.asset-feature-summary strong { margin-left: 4px; color: #17202a; }
+.asset-feature-form { display: grid; gap: 12px; border-top: 1px solid #dfe5ec; padding-top: 16px; }
+.asset-form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.asset-feature-form label, .asset-record-form label { display: grid; gap: 6px; min-width: 0; color: #526171; font-size: 0.8rem; }
+.asset-feature-form input, .asset-feature-form select, .asset-record-form input, .asset-record-form select { width: 100%; min-height: 42px; }
+.asset-feature-form .primary-button { justify-self: start; }
+.asset-account-list { display: grid; gap: 12px; }
+.asset-account-card { display: grid; gap: 14px; border: 1px solid #dfe5ec; border-radius: 8px; padding: 16px; }
+.asset-account-card > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.asset-account-card > header span, .asset-account-period, .asset-helper { color: #687789; font-size: 0.8rem; }
+.asset-account-period, .asset-helper { margin: 0; }
+.asset-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.asset-metric-grid div { display: grid; gap: 4px; border-radius: 6px; background: #f4f6f8; padding: 10px; }
+.asset-metric-grid dt { color: #687789; font-size: 0.75rem; }
+.asset-metric-grid dd { margin: 0; font-weight: 600; }
+.asset-record-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 8px; }
+.asset-record-form:not(.investment-record-form) { grid-template-columns: repeat(2, minmax(0, 1fr)) auto; }
+.asset-record-form button { min-height: 42px; }
+.asset-record-list { display: grid; gap: 6px; }
+.asset-record-item { display: grid; grid-template-columns: 110px minmax(0, 1fr) 80px auto; align-items: center; gap: 8px; border-top: 1px solid #edf1f5; padding-top: 7px; font-size: 0.84rem; }
+.asset-record-item small { color: #687789; }
+.text-danger-button, .asset-record-item button { border: 0; background: transparent; color: #c74343; }
+.basic-assets-section summary { cursor: pointer; font-weight: 600; }
+.basic-assets-section[open] summary { margin-bottom: 16px; }
+.app-shell[data-theme="dark"] .asset-feature-section, .app-shell[data-theme="dark"] .asset-account-card { border-color: #303743; background: #1f242c; }
+.app-shell[data-theme="dark"] .asset-feature-summary strong { color: #f4f6f8; }
+.app-shell[data-theme="dark"] .asset-metric-grid div { background: #252b34; }
+@media (max-width: 900px) {
+  .asset-feature-heading { display: grid; }
+  .asset-feature-summary { justify-content: flex-start; }
+  .asset-form-grid, .asset-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .asset-record-form, .asset-record-form:not(.investment-record-form) { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .asset-form-grid, .asset-metric-grid { grid-template-columns: 1fr; }
+  .asset-record-item { grid-template-columns: 1fr auto; }
+  .asset-record-item small { grid-column: 1; }
+}
+
+.general-account-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.general-account-card-actions { display: flex; align-items: center; gap: 12px; }
+.general-account-card-actions button { border: 0; background: transparent; color: #c74343; }
+
+
+/* Analysis asset dashboard */
+.asset-dashboard { gap: 16px; }
+.asset-dashboard-total { display: grid; gap: 6px; border: 1px solid #dfe5ec; border-radius: 8px; background: #fff; padding: 22px; }
+.asset-dashboard-total span, .asset-dashboard-total small, .asset-dashboard-card span, .asset-dashboard-card p { color: #687789; }
+.asset-dashboard-total strong { font-size: 1.8rem; }
+.asset-dashboard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.asset-dashboard-card { display: grid; align-content: start; gap: 10px; min-height: 180px; border: 1px solid #dfe5ec; border-radius: 8px; background: #fff; padding: 18px; cursor: pointer; }
+.asset-dashboard-card > div { display: grid; gap: 6px; }
+.asset-dashboard-card p { margin: 0; font-size: 0.86rem; }
+.asset-dashboard-card strong { font-size: 1.25rem; }
+.asset-dashboard-card button { justify-self: start; margin-top: auto; }
+.asset-dashboard-card:focus-visible { outline: 2px solid #687789; outline-offset: 3px; }
+.asset-management-page { gap: 14px; }
+.asset-management-back { justify-self: start; border: 0; background: transparent; color: #526171; padding: 4px 0; }
+.app-shell[data-theme="dark"] .asset-dashboard-total, .app-shell[data-theme="dark"] .asset-dashboard-card { border-color: #303743; background: #1f242c; }
+@media (max-width: 900px) { .asset-dashboard-grid { grid-template-columns: 1fr; } }
+
+
+/* Settings overview */
+.settings-screen { grid-template-columns: minmax(0, 620px); gap: 30px; }
+.settings-group { display: grid; gap: 10px; }
+.settings-group h2 { margin: 0; padding: 0 4px; color: #687789; font-size: 0.82rem; font-weight: 600; }
+.settings-list { overflow: hidden; border: 1px solid #dfe5ec; border-radius: 18px; background: #fff; }
+.settings-list-row, .settings-action-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; width: 100%; min-height: 62px; border: 0; border-bottom: 1px solid #edf1f5; background: transparent; padding: 12px 16px; color: #17202a; text-align: left; }
+.settings-list > :last-child { border-bottom: 0; }
+.font-size-options { display: flex; gap: 4px; border-radius: 12px; background: #eef2f5; padding: 3px; }
+.font-size-options button { border: 0; border-radius: 9px; background: transparent; padding: 7px 10px; color: #687789; font-size: 0.78rem; }
+.font-size-options button.active { background: #fff; color: #17202a; box-shadow: 0 2px 8px rgba(23, 32, 42, 0.1); }
+.settings-action-row > span:first-child { display: grid; gap: 4px; }
+.settings-action-row strong { font-size: 0.9rem; font-weight: 500; }
+.settings-action-row small, .settings-row-value { color: #7c8997; font-size: 0.78rem; }
+.settings-chevron { width: 9px; height: 9px; transform: rotate(45deg); border-top: 1.5px solid #8995a2; border-right: 1.5px solid #8995a2; }
+.app-shell[data-theme="dark"] .settings-group h2, .app-shell[data-theme="dark"] .settings-action-row small, .app-shell[data-theme="dark"] .settings-row-value { color: #9da8b5; }
+.app-shell[data-theme="dark"] .settings-list { border-color: #303743; background: #1f242c; }
+.app-shell[data-theme="dark"] .settings-list-row, .app-shell[data-theme="dark"] .settings-action-row { border-color: #303743; color: #f4f6f8; }
+.app-shell[data-theme="dark"] .font-size-options { background: #252b34; }
+.app-shell[data-theme="dark"] .font-size-options button { color: #9da8b5; }
+.app-shell[data-theme="dark"] .font-size-options button.active { background: #343b46; color: #f4f6f8; box-shadow: none; }
+
+
+/* Date calendar card frame */
+.app-shell .calendar-screen .calendar-panel.calendar-design {
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.app-shell[data-theme='dark'] .calendar-screen .calendar-panel.calendar-design {
+  border-color: #303743 !important;
+  background: #1f242c !important;
 }

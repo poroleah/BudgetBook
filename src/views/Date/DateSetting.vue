@@ -26,6 +26,7 @@ const emit = defineEmits(['add-asset', 'add-asset-type', 'add-payment-method', '
 const isBookNameEditing = ref(!props.settings.bookName)
 const isBudgetEditing = ref(props.settings.monthlyBudget === '')
 const openSettingList = ref('')
+const activeSettingType = ref('expense')
 const isAssetNameEditing = ref(false)
 const isAssetTypeMenuOpen = ref(false)
 const newAsset = ref({
@@ -107,10 +108,29 @@ function addPaymentMethod() {
 <template>
   <section class="book-menu-panel" @click="closeEditableFieldsOnOutsideControl">
     <PageHeader
+      class="settings-page-header"
       title="가계부 설정"
       back-label="달력으로 돌아가기"
       @back="$emit('closePage')"
     />
+    <div
+      class="category-type-tabs setting-type-tabs"
+      :class="{
+        'income-selected': activeSettingType === 'income',
+        'transfer-selected': activeSettingType === 'transfer',
+      }"
+    >
+      <span class="category-type-indicator"></span>
+      <button type="button" :class="{ active: activeSettingType === 'expense' }" @click="activeSettingType = 'expense'">
+        지출
+      </button>
+      <button type="button" :class="{ active: activeSettingType === 'income' }" @click="activeSettingType = 'income'">
+        수입
+      </button>
+      <button type="button" :class="{ active: activeSettingType === 'transfer' }" @click="activeSettingType = 'transfer'">
+        이체
+      </button>
+    </div>
     <div class="setting-value-row">
       <span>가계부 이름</span>
       <input

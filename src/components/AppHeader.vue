@@ -1,5 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import DonguramiIcon from '../assets/Dongurami.svg'
+import DonguIcon from '../assets/Dongu.svg'
 
 const props = defineProps({
   activeBookId: {
@@ -80,18 +82,21 @@ onBeforeUnmount(() => {
 <template>
   <section class="topbar">
     <div class="title-area">
-      <p class="eyebrow">Moneybook</p>
       <div class="title-row">
         <div class="title-copy">
           <div ref="bookSwitcher" class="title-heading">
             <button
-              class="book-title-button"
+              class="book-title-button book-title-design"
               type="button"
               :aria-expanded="isBookSwitcherOpen"
               @click="isBookSwitcherOpen = !isBookSwitcherOpen"
             >
+              <span class="book-brand-icons" aria-hidden="true">
+                <img :src="DonguramiIcon" alt="" />
+                <img :src="DonguIcon" alt="" />
+              </span>
               <h1>{{ activeBookLabel }}</h1>
-              <span class="entry-select-chevron" aria-hidden="true"></span>
+              <span class="book-title-chevron" aria-hidden="true"></span>
             </button>
             <Transition name="entry-dropdown-slide">
               <div v-if="isBookSwitcherOpen" class="book-switcher-menu">
@@ -146,3 +151,54 @@ onBeforeUnmount(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+.book-switcher-menu {
+  font-family: 'EliceDX', sans-serif;
+}
+
+.book-title-design {
+  display: flex;
+  gap: 0;
+  min-height: 28px;
+  padding: 0;
+}
+
+.book-brand-icons {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.book-brand-icons img {
+  width: 20px;
+  height: 20px;
+}
+
+.book-brand-icons img + img {
+  margin-left: 3px;
+}
+
+.book-title-design h1 {
+  margin: 0;
+  font-family: 'EliceDX', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.book-title-chevron {
+  width: 20px;
+  height: 20px;
+  margin-left: 1px;
+  background: #6c757d;
+  -webkit-mask: url("/icons/Chevron.svg") center / contain no-repeat;
+  mask: url("/icons/Chevron.svg") center / contain no-repeat;
+  transform: rotate(-90deg);
+  transition: transform 180ms ease;
+}
+
+.book-title-design[aria-expanded='true'] .book-title-chevron {
+  transform: rotate(90deg);
+}
+</style>

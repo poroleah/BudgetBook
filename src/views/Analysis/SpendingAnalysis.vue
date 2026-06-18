@@ -1,30 +1,22 @@
 <script setup>
-defineProps({
-  budgetLeft: {
-    type: Number,
-    required: true,
-  },
-  categorySummary: {
-    type: Array,
-    required: true,
-  },
-  currency: {
-    type: Object,
-    required: true,
-  },
-  currentMonth: {
-    type: String,
-    required: true,
-  },
-  monthlyTrend: {
-    type: Array,
-    required: true,
-  },
-  trendMax: {
-    type: Number,
-    required: true,
-  },
+import { toRef } from 'vue'
+import { useAnalysis } from '../../composables/useAnalysis'
+
+const props = defineProps({
+  budgetLeft: { type: Number, required: true },
+  currency: { type: Object, required: true },
+  currentMonth: { type: String, required: true },
+  monthExpense: { type: Number, required: true },
+  monthTransactions: { type: Array, required: true },
+  state: { type: Object, required: true },
 })
+
+const { categorySummary, monthlyTrend, trendMax } = useAnalysis(
+  props.state,
+  toRef(props, 'currentMonth'),
+  toRef(props, 'monthTransactions'),
+  toRef(props, 'monthExpense'),
+)
 </script>
 
 <template>

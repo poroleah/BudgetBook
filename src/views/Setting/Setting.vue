@@ -1,150 +1,115 @@
 <script setup>
-import { computed, ref } from 'vue'
-
 const props = defineProps({
-  activeBookId: {
-    type: String,
-    required: true,
-  },
-  books: {
-    type: Array,
-    required: true,
-  },
-  categories: {
-    type: Array,
-    required: true,
-  },
-  settings: {
-    type: Object,
-    required: true,
-  },
+  books: { type: Array, required: true },
+  settings: { type: Object, required: true },
 })
 
-defineEmits(['add-category', 'delete-book'])
+const fontSizes = [
+  { value: "small", label: "작게" },
+  { value: "medium", label: "보통" },
+  { value: "large", label: "크게" },
+]
 
-const isBookNameEditing = ref(!props.settings.bookName)
-const isBudgetEditing = ref(props.settings.monthlyBudget === '')
-
-const formattedMonthlyBudget = computed(() =>
-  `${new Intl.NumberFormat('ko-KR').format(Number(props.settings.monthlyBudget || 0))}원`,
-)
-
-function closeBudgetInput() {
-  if (props.settings.monthlyBudget !== '' && props.settings.monthlyBudget !== null) {
-    isBudgetEditing.value = false
-  }
+function escapeXml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll(String.fromCharCode(39), "&apos;")
 }
 
-function closeBookNameInput() {
-  if (props.settings.bookName.trim()) {
-    isBookNameEditing.value = false
-  }
+function worksheet(name, headers, rows) {
+  const rowXml = [headers, ...rows]
+    .map((row) => `<Row>${row.map((value) => `<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`).join("")}</Row>`)
+    .join("")
+  return `<Worksheet ss:Name="${escapeXml(name)}"><Table>${rowXml}</Table></Worksheet>`
 }
 
-function closeEditableFields() {
-  closeBookNameInput()
-  closeBudgetInput()
-}
-
-function closeEditableFieldsOnOutsideControl(event) {
-  if (event.target.closest('input, button, select, textarea')) return
-  closeEditableFields()
+function downloadBackup() {
+  const bookRows = props.books.map((book) => [
+    book.settings?.bookName || "내 가계부",
+    book.settings?.monthlyBudget || 0,
+    book.settings?.theme || "light",
+  ])
+  const transactionRows = props.books.flatMap((book) =>
+    (book.transactions || []).map((item) => [
+      book.settings?.bookName || "내 가계부",
+      item.date,
+      item.type,
+      item.category,
+      item.subcategory,
+      item.title,
+      item.amount,
+      item.paymentMethod,
+    ]),
+  )
+  const assetRows = props.books.flatMap((book) =>
+    (book.assets || []).map((item) => [
+      book.settings?.bookName || "내 가계부",
+      item.name,
+      item.type,
+      item.institution,
+      item.balance,
+    ]),
+  )
+  const workbook = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  ${worksheet("가계부", ["가계부 이름", "월 예산", "테마"], bookRows)}
+  ${worksheet("거래내역", ["가계부", "날짜", "유형", "카테고리", "하위 카테고리", "내용", "금액", "결제수단"], transactionRows)}
+  ${worksheet("자산", ["가계부", "자산명", "유형", "금융기관", "잔액"], assetRows)}
+</Workbook>`
+  const blob = new Blob([workbook], { type: "application/vnd.ms-excel;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  const date = new Date().toISOString().slice(0, 10)
+  link.href = url
+  link.download = `돈구라미-백업-${date}.xls`
+  link.click()
+  URL.revokeObjectURL(url)
 }
 </script>
 
 <template>
   <section class="screen settings-screen">
-    <article class="settings-panel" @click="closeEditableFieldsOnOutsideControl">
-      <div class="setting-value-row">
-        <span>가계부 이름</span>
-        <input
-          v-if="isBookNameEditing"
-          v-model.trim="settings.bookName"
-          type="text"
-          placeholder="내 가계부"
-          @blur="closeBookNameInput"
-          @keyup.enter="closeBookNameInput"
-        />
-        <button v-else class="setting-value-display" type="button" @click="isBookNameEditing = true">
-          <span>{{ settings.bookName || '내 가계부' }}</span>
-          <span class="setting-edit-icon" aria-hidden="true"></span>
-        </button>
-      </div>
-      <div class="budget-row">
-        <span>월 예산</span>
-        <input
-          v-if="isBudgetEditing"
-          v-model.number="settings.monthlyBudget"
-          type="number"
-          min="0"
-          @blur="closeBudgetInput"
-          @keyup.enter="closeBudgetInput"
-        />
-        <button v-else class="setting-value-display" type="button" @click="isBudgetEditing = true">
-          <span>{{ formattedMonthlyBudget }}</span>
-          <span class="setting-edit-icon" aria-hidden="true"></span>
-        </button>
-      </div>
-      <div class="toggle-row">
-        <span>다크모드</span>
-        <button
-          class="toggle-button"
-          type="button"
-          aria-label="다크모드"
-          :aria-pressed="settings.theme === 'dark'"
-          @click="settings.theme = settings.theme === 'dark' ? 'light' : 'dark'"
-        >
-          <span class="toggle-switch" aria-hidden="true"></span>
-        </button>
-      </div>
-      <div class="week-start-row">
-        <span>주 시작 요일</span>
-        <div class="week-start-options" :class="{ 'monday-selected': settings.weekStartsOn === 'monday' }">
-          <span class="week-start-indicator"></span>
-          <button
-            type="button"
-            :class="{ active: settings.weekStartsOn === 'sunday' }"
-            @click="settings.weekStartsOn = 'sunday'"
-          >
-            일요일
-          </button>
-          <button
-            type="button"
-            :class="{ active: settings.weekStartsOn === 'monday' }"
-            @click="settings.weekStartsOn = 'monday'"
-          >
-            월요일
-          </button>
+    <div class="settings-page-title"><h1>설정</h1></div>
+
+    <section class="settings-group" aria-labelledby="preferences-title">
+      <h2 id="preferences-title">환경설정</h2>
+      <div class="settings-list">
+        <div class="settings-list-row font-size-row">
+          <span>글씨 크기</span>
+          <div class="font-size-options" aria-label="글씨 크기">
+            <button v-for="option in fontSizes" :key="option.value" type="button" :class="{ active: (settings.fontSize || 'medium') === option.value }" :aria-pressed="(settings.fontSize || 'medium') === option.value" @click="settings.fontSize = option.value">{{ option.label }}</button>
+          </div>
+        </div>
+        <div class="settings-list-row">
+          <span>알람 설정</span>
+          <button class="toggle-button" type="button" aria-label="알람 설정" :aria-pressed="settings.notificationsEnabled" @click="settings.notificationsEnabled = !settings.notificationsEnabled"><span class="toggle-switch" aria-hidden="true"></span></button>
+        </div>
+        <div class="settings-list-row">
+          <span>다크모드</span>
+          <button class="toggle-button" type="button" aria-label="다크모드" :aria-pressed="settings.theme === 'dark'" @click="settings.theme = settings.theme === 'dark' ? 'light' : 'dark'"><span class="toggle-switch" aria-hidden="true"></span></button>
         </div>
       </div>
-      <label>
-        <span>카테고리 추가</span>
-        <input type="text" placeholder="새 카테고리" @keyup.enter="$emit('add-category', $event)" />
-      </label>
-      <div class="chip-list">
-        <span v-for="category in categories" :key="category">{{ category }}</span>
+    </section>
+
+    <section class="settings-group" aria-labelledby="backup-title">
+      <h2 id="backup-title">데이터 백업</h2>
+      <div class="settings-list">
+        <button class="settings-action-row" type="button" @click="downloadBackup">
+          <span><strong>엑셀 파일로 보내기</strong><small>가계부 데이터를 엑셀 파일로 저장해요</small></span>
+          <span class="settings-chevron" aria-hidden="true"></span>
+        </button>
       </div>
-      <div class="book-delete-section">
-        <div class="panel-heading">
-          <p>Books</p>
-          <h2>가계부 목록</h2>
-        </div>
-        <div class="book-delete-list">
-          <article v-for="book in books" :key="book.id" class="book-delete-item">
-            <div>
-              <span>{{ book.id === activeBookId ? '현재 가계부' : '가계부' }}</span>
-              <strong>{{ book.settings?.bookName || '내 가계부' }}</strong>
-            </div>
-            <button
-              type="button"
-              :disabled="books.length <= 1"
-              @click="$emit('delete-book', book.id)"
-            >
-              삭제
-            </button>
-          </article>
-        </div>
+    </section>
+
+    <section class="settings-group" aria-labelledby="more-title">
+      <h2 id="more-title">더보기</h2>
+      <div class="settings-list">
+        <div class="settings-list-row"><span>앱 정보</span><span class="settings-row-value">돈구라미 1.0.0</span></div>
       </div>
-    </article>
+    </section>
   </section>
 </template>

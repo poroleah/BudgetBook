@@ -76,6 +76,17 @@ const categorySelectionLabel = computed(() => {
   return `${props.transactionForm.category} > ${props.transactionForm.subcategory}`
 })
 
+const repeatFrequencyOptions = [
+  { label: '매일', value: 'daily' },
+  { label: '매주', value: 'weekly' },
+  { label: '매월', value: 'monthly' },
+  { label: '말일', value: 'monthEnd' },
+]
+
+const repeatFrequencyLabel = computed(() =>
+  repeatFrequencyOptions.find((option) => option.value === props.transactionForm.repeatFrequency)?.label || '매월',
+)
+
 function digitsOnly(value) {
   return String(value ?? '').replace(/\D/g, '')
 }
@@ -143,8 +154,12 @@ watch(
     if (!assetOptions.value.includes(props.transactionForm.assetName)) {
       props.transactionForm.assetName = defaultAssetName.value
     }
-    if (type !== 'expense' && openOptionMenu.value === 'paymentMethod') {
-      openOptionMenu.value = ''
+    if (type !== 'expense') {
+      props.transactionForm.repeatEnabled = false
+      props.transactionForm.repeatEndDate = ''
+      if (openOptionMenu.value === 'paymentMethod' || openOptionMenu.value === 'repeatFrequency') {
+        openOptionMenu.value = ''
+      }
     }
     if (type === 'expense' && !paymentMethodOptions.value.includes(props.transactionForm.paymentMethod)) {
       props.transactionForm.paymentMethod = defaultPaymentMethod.value
@@ -225,6 +240,8 @@ function resetTransactionForm() {
   props.transactionForm.amount = ''
   props.transactionForm.memo = ''
   props.transactionForm.date = props.selectedDate
+  props.transactionForm.repeatEnabled = false
+  props.transactionForm.repeatEndDate = ''
 }
 
 function openAddModal() {
@@ -264,6 +281,8 @@ function openTransaction(transaction) {
   props.transactionForm.date = transaction.date
   props.transactionForm.memo = transaction.memo || ''
   props.transactionForm.paymentMethod = transaction.paymentMethod || defaultPaymentMethod.value
+  props.transactionForm.repeatEnabled = false
+  props.transactionForm.repeatEndDate = ''
   dateCalendarMonth.value = transaction.date.slice(0, 7)
   isDatePickerOpen.value = false
   openOptionMenu.value = ''
@@ -300,13 +319,13 @@ defineExpose({
           </PageHeader>
 
           <div
-            class="segmented"
+            class="category-type-tabs entry-type-tabs"
             :class="{
               'income-selected': transactionForm.type === 'income',
               'transfer-selected': transactionForm.type === 'transfer',
             }"
           >
-            <span class="segmented-indicator"></span>
+            <span class="category-type-indicator"></span>
             <button
               type="button"
               :class="{ active: transactionForm.type === 'expense' }"
@@ -442,6 +461,54 @@ defineExpose({
                 </button>
               </div>
             </Transition>
+          </div>
+        </div>
+
+        <div v-if="transactionForm.type === 'expense' && !editingTransactionId" class="entry-field repeat-field">
+          <div class="repeat-toggle-row">
+            <span>반복 지출</span>
+            <button
+              class="toggle-button"
+              type="button"
+              aria-label="반복 지출"
+              :aria-pressed="transactionForm.repeatEnabled"
+              @click="transactionForm.repeatEnabled = !transactionForm.repeatEnabled"
+            >
+              <span class="toggle-switch" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div v-if="transactionForm.repeatEnabled" class="repeat-controls">
+            <div class="repeat-option-field">
+              <span>주기</span>
+              <div class="entry-select">
+                <button
+                  class="entry-select-button"
+                  type="button"
+                  :aria-expanded="openOptionMenu === 'repeatFrequency'"
+                  @click="toggleOptionMenu('repeatFrequency')"
+                >
+                  <span>{{ repeatFrequencyLabel }}</span>
+                  <span class="entry-select-chevron" aria-hidden="true"></span>
+                </button>
+                <Transition name="entry-dropdown-slide">
+                  <div v-if="openOptionMenu === 'repeatFrequency'" class="entry-select-menu">
+                    <button
+                      v-for="option in repeatFrequencyOptions"
+                      :key="option.value"
+                      type="button"
+                      :class="{ active: option.value === transactionForm.repeatFrequency }"
+                      @click="selectOption('repeatFrequency', option.value)"
+                    >
+                      {{ option.label }}
+                    </button>
+                  </div>
+                </Transition>
+              </div>
+            </div>
+            <label class="repeat-end-field">
+              <span>종료일</span>
+              <input v-model="transactionForm.repeatEndDate" type="date" :min="transactionForm.date" :required="transactionForm.repeatEnabled" />
+            </label>
           </div>
         </div>
 

@@ -13,6 +13,9 @@ export function useTransactions(state, selectedDate, currentMonth) {
     assetName: defaultAssetName(),
     memo: '',
     paymentMethod: defaultPaymentMethod(),
+    repeatEnabled: false,
+    repeatFrequency: 'monthly',
+    repeatEndDate: '',
   })
 
   watch(selectedDate, (date) => {
@@ -66,26 +69,91 @@ export function useTransactions(state, selectedDate, currentMonth) {
   const monthBalance = computed(() => monthIncome.value - monthExpense.value)
   const budgetLeft = computed(() => state.settings.monthlyBudget - monthExpense.value)
 
+  const dateFromKey = (dateKey) => {
+    const [year, month, day] = String(dateKey).split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  const dateToKey = (date) =>
+    date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
+
+  const lastDateOfMonth = (year, monthIndex) => new Date(year, monthIndex + 1, 0).getDate()
+
+  const addMonths = (date, offset) => {
+    const nextDate = new Date(date)
+    const day = nextDate.getDate()
+    nextDate.setDate(1)
+    nextDate.setMonth(nextDate.getMonth() + offset)
+    nextDate.setDate(Math.min(day, lastDateOfMonth(nextDate.getFullYear(), nextDate.getMonth())))
+    return nextDate
+  }
+
+  const monthEndDate = (date) =>
+    new Date(date.getFullYear(), date.getMonth(), lastDateOfMonth(date.getFullYear(), date.getMonth()))
+
+  const recurringDates = (startDateKey, frequency, endDateKey) => {
+    if (!endDateKey || endDateKey < startDateKey) return [startDateKey]
+
+    const dates = []
+    const startDate = dateFromKey(startDateKey)
+    const endDate = dateFromKey(endDateKey)
+    let cursor = frequency === 'monthEnd' ? monthEndDate(startDate) : startDate
+
+    if (frequency === 'monthEnd' && cursor < startDate) {
+      cursor = monthEndDate(addMonths(startDate, 1))
+    }
+
+    while (cursor <= endDate && dates.length < 120) {
+      dates.push(dateToKey(cursor))
+
+      if (frequency === 'daily') {
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)
+      } else if (frequency === 'weekly') {
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7)
+      } else if (frequency === 'monthEnd') {
+        cursor = monthEndDate(addMonths(cursor, 1))
+      } else {
+        cursor = addMonths(cursor, 1)
+      }
+    }
+
+    return dates
+  }
+
   function addTransaction() {
     const amount = Number(String(transactionForm.amount ?? '').replace(/\D/g, ''))
     if (amount <= 0) return
 
-    state.transactions.push({
-      id: Date.now(),
-      date: transactionForm.date || selectedDate.value,
-      type: transactionForm.type,
-      title: transactionForm.subcategory || transactionForm.category,
-      category: transactionForm.category,
-      subcategory: transactionForm.subcategory,
-      assetName: transactionForm.assetName || defaultAssetName(),
-      amount,
-      memo: transactionForm.memo.trim(),
-      paymentMethod: transactionForm.type === 'expense' ? transactionForm.paymentMethod || defaultPaymentMethod() : '',
+    const startDate = transactionForm.date || selectedDate.value
+    const isRecurringExpense = transactionForm.type === 'expense' && transactionForm.repeatEnabled
+    const dates = isRecurringExpense
+      ? recurringDates(startDate, transactionForm.repeatFrequency, transactionForm.repeatEndDate)
+      : [startDate]
+    const recurringGroupId = isRecurringExpense ? 'repeat-' + Date.now() : ''
+    const createdAt = Date.now()
+
+    dates.forEach((date, index) => {
+      state.transactions.push({
+        id: createdAt + index,
+        date,
+        type: transactionForm.type,
+        title: transactionForm.subcategory || transactionForm.category,
+        category: transactionForm.category,
+        subcategory: transactionForm.subcategory,
+        assetName: transactionForm.assetName || defaultAssetName(),
+        amount,
+        memo: transactionForm.memo.trim(),
+        paymentMethod: transactionForm.type === 'expense' ? transactionForm.paymentMethod || defaultPaymentMethod() : '',
+        recurringGroupId,
+        repeatFrequency: isRecurringExpense ? transactionForm.repeatFrequency : '',
+      })
     })
 
     transactionForm.amount = ''
     transactionForm.memo = ''
     transactionForm.date = selectedDate.value
+    transactionForm.repeatEnabled = false
+    transactionForm.repeatEndDate = ''
     transactionForm.assetName = transactionForm.assetName || defaultAssetName()
     transactionForm.paymentMethod = transactionForm.paymentMethod || defaultPaymentMethod()
   }
