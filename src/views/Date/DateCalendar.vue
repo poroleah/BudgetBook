@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import DateAdd from './DateAdd.vue'
+import DateRecord from './DateRecord.vue'
 
 const props = defineProps({
   assets: {
@@ -84,29 +85,6 @@ const weekdayLabels = computed(() =>
     : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
 )
 
-const transactionAmount = (item) => {
-  const amount = Number(item.amount)
-  return Number.isFinite(amount) ? amount : 0
-}
-
-const selectedIncome = computed(() =>
-  props.selectedTransactions
-    .filter((item) => item.type === 'income')
-    .reduce((sum, item) => sum + transactionAmount(item), 0),
-)
-
-const selectedExpense = computed(() =>
-  props.selectedTransactions
-    .filter((item) => item.type === 'expense')
-    .reduce((sum, item) => sum + transactionAmount(item), 0),
-)
-
-const selectedTransfer = computed(() =>
-  props.selectedTransactions
-    .filter((item) => item.type === 'transfer')
-    .reduce((sum, item) => sum + transactionAmount(item), 0),
-)
-
 watch(
   () => props.currentMonth,
   (monthKey) => {
@@ -121,10 +99,6 @@ function selectMonth(monthKey) {
 
 function openTransactionEditor(transaction) {
   dateAdd.value?.openTransaction(transaction)
-}
-
-function categoryIcon(category) {
-  return props.categoryDetails[category]?.icon || category?.trim().slice(0, 1) || '?'
 }
 
 </script>
@@ -195,65 +169,22 @@ function categoryIcon(category) {
           <span v-if="day" class="day-number">
             {{ day.day }}
             <span
-              v-if="day.expense > day.income"
-              class="expense-alert-dot"
-              aria-label="수입보다 지출이 많은 날"
+              v-if="day.expense > day.income || day.income > 0"
+              class="calendar-status-dot"
+              :class="day.expense > day.income ? 'expense-alert-dot' : 'income-alert-dot'"
+              :aria-label="day.expense > day.income ? '수입보다 지출이 많은 날' : '수입이 있는 날'"
             ></span>
           </span>
         </button>
       </div>
     </div>
 
-    <section class="transaction-section">
-      <div class="panel-heading transaction-heading">
-        <div>
-          <p>{{ selectedDate }}</p>
-          <h2>거래 기록</h2>
-        </div>
-        <div class="daily-summary" aria-label="선택 날짜 수입, 지출, 이체">
-          <div class="daily-summary-item">
-            <span>수입</span>
-            <strong class="income">+{{ currency.format(selectedIncome) }}</strong>
-          </div>
-          <div class="daily-summary-item">
-            <span>지출</span>
-            <strong class="expense">-{{ currency.format(selectedExpense) }}</strong>
-          </div>
-          <div class="daily-summary-item">
-            <span>이체</span>
-            <strong class="transfer">{{ currency.format(selectedTransfer) }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <div class="transaction-list">
-        <article
-          v-for="item in selectedTransactions"
-          :key="item.id"
-          class="transaction-item"
-          role="button"
-          tabindex="0"
-          @click="openTransactionEditor(item)"
-          @keydown.enter.prevent="openTransactionEditor(item)"
-          @keydown.space.prevent="openTransactionEditor(item)"
-        >
-          <div class="transaction-main">
-            <span class="transaction-category-icon" aria-hidden="true">{{ categoryIcon(item.category) }}</span>
-            <div>
-              <strong>{{ item.subcategory || item.title }}</strong>
-              <span>{{ [item.assetName, item.paymentMethod, item.memo].filter(Boolean).join(' | ') || '-' }}</span>
-            </div>
-          </div>
-          <div class="amount-line">
-            <b :class="item.type">
-              {{ item.type === 'income' ? '+' : '-' }}{{ currency.format(item.amount) }}
-            </b>
-            <button type="button" @click.stop="$emit('remove-transaction', item.id)">삭제</button>
-          </div>
-        </article>
-        <p v-if="!selectedTransactions.length" class="empty-state">기록이 없습니다.</p>
-      </div>
-    </section>
+    <DateRecord
+      :category-details="categoryDetails"
+      :selected-date="selectedDate"
+      :selected-transactions="selectedTransactions"
+      @edit-transaction="openTransactionEditor"
+    />
 
     <DateAdd
       ref="dateAdd"
@@ -330,14 +261,19 @@ function categoryIcon(category) {
   font-family: 'Elice', sans-serif;
   font-size: 0.97rem; font-weight: 400; line-height: 1;
 }
-.calendar-design .expense-alert-dot {
+.calendar-design .calendar-status-dot {
   position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 9px;
-  height: 9px;
+  top: 1px;
+  right: 1px;
+  width: 7.2px;
+  height: 7.2px;
   border-radius: 50%;
+}
+.calendar-design .expense-alert-dot {
   background: #f43f5e;
+}
+.calendar-design .income-alert-dot {
+  background: #20c997;
 }
 .calendar-design .day-cell.selected .day-number {
   border: 2px solid #f8f9fa !important;
@@ -349,6 +285,14 @@ function categoryIcon(category) {
   background: #f8f9fa !important;
 }
 .calendar-design .month-picker-panel { top: 44px; }
+
+.calendar-screen .transaction-section {
+  border: 0 !important;
+  border-radius: 10px;
+  background: #fff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
 
 :global(.app-shell[data-theme="dark"]) .calendar-design { background: #1f242c !important; border: 0 !important; }
 :global(.app-shell[data-theme="dark"]) .calendar-design-divider { background: #303743; }

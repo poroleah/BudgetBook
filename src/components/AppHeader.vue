@@ -124,27 +124,22 @@ onBeforeUnmount(() => {
         </div>
         <div v-if="activeTab === 'calendar'" class="book-menu">
           <button
-            class="menu-button category-menu-button"
+            class="menu-button header-icon-button"
             type="button"
             aria-label="카테고리 페이지 열기"
             :aria-expanded="activeBookPage === 'category'"
             @click="$emit('open-category')"
           >
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
+            <img src="/icons/CateSet.svg" alt="" />
           </button>
           <button
-            class="menu-button"
+            class="menu-button header-icon-button"
             type="button"
             aria-label="가계부 설정 열기"
             :aria-expanded="activeBookPage === 'settings'"
             @click="$emit('open-settings')"
           >
-            <span></span>
-            <span></span>
-            <span></span>
+            <img src="/icons/CalSet.svg" alt="" />
           </button>
         </div>
       </div>
@@ -200,5 +195,30 @@ onBeforeUnmount(() => {
 
 .book-title-design[aria-expanded='true'] .book-title-chevron {
   transform: rotate(90deg);
+}
+
+.book-menu {
+  gap: 8px;
+  top: 4px;
+}
+
+.book-menu .header-icon-button.header-icon-button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  aspect-ratio: 1 / 1;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(223, 229, 236, 0.9) !important;
+  border-radius: 10px;
+  background: var(--White, #fff) !important;
+  color: #212529;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.25) !important;
+}
+
+.book-menu .header-icon-button.header-icon-button img {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 </style>

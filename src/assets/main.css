@@ -206,7 +206,9 @@ button:active {
   flex-wrap: nowrap;
   gap: clamp(6px, 2vw, 12px);
   overflow-x: auto;
+  max-width: calc(100% - 104px);
   color: #617080;
+  font-family: 'EliceDX', sans-serif;
   font-size: clamp(0.78rem, 2.9vw, 0.94rem);
   font-weight: 400;
   opacity: 1;
@@ -222,7 +224,7 @@ button:active {
 }
 
 .compact-summary span:nth-child(1) {
-  color: #147a61;
+  color: #20c997;
 }
 
 .compact-summary span:nth-child(2) {
@@ -1525,7 +1527,7 @@ select {
 }
 
 .income {
-  color: #147a61;
+  color: #20c997;
 }
 
 .expense {
@@ -1929,7 +1931,7 @@ select {
 }
 
 .day-cell small.income {
-  color: #2f8f6f;
+  color: #20c997;
 }
 
 .day-cell small.expense {
@@ -2806,7 +2808,7 @@ select {
 
 .income-bar,
 .income-dot {
-  background: #39a984;
+  background: #20c997;
 }
 
 .expense-bar,
@@ -4091,6 +4093,245 @@ select {
 .app-shell[data-theme="dark"] .asset-feature-section, .app-shell[data-theme="dark"] .asset-account-card { border-color: #303743; background: #1f242c; }
 .app-shell[data-theme="dark"] .asset-feature-summary strong { color: #f4f6f8; }
 .app-shell[data-theme="dark"] .asset-metric-grid div { background: #252b34; }
+
+.app-shell .book-menu .header-icon-button.header-icon-button {
+  border-radius: 10px !important;
+  background: var(--White, #fff) !important;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.25) !important;
+  padding: 0 !important;
+}
+
+.app-shell .transaction-section {
+  width: min(100%, 370px);
+  margin: 14px auto 0;
+  min-height: 307px;
+  border: 0 !important;
+  border-radius: 10px;
+  background: #fff !important;
+  padding: 16px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+  color: #212529;
+  font-family: 'EliceDX', sans-serif;
+  overflow: hidden;
+}
+
+.app-shell .transaction-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin: 0 0 14px;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.app-shell .transaction-heading p {
+  margin: 0 0 4px;
+  color: #6c757d;
+  font-size: 10px;
+  font-weight: 300;
+  line-height: 20.25px;
+}
+
+.app-shell .transaction-heading h2 {
+  margin: 0;
+  color: #212529;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.app-shell .daily-summary {
+  display: grid;
+  gap: 2px;
+  justify-content: end;
+  padding-top: 10px;
+}
+
+.app-shell .daily-summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  line-height: 1;
+}
+
+.app-shell .daily-summary-item span {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.app-shell .daily-summary-item strong {
+  font-family: 'Nanum', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20.25px;
+}
+
+.app-shell .daily-summary-item:has(.income) {
+  color: #20c997;
+}
+
+.app-shell .daily-summary-item:has(.expense) {
+  color: #f43f5e;
+}
+
+.app-shell .daily-summary-item .expense {
+  color: #f43f5e !important;
+}
+
+.app-shell .daily-summary-item:has(.transfer) {
+  color: #6c757d;
+}
+
+.app-shell .transaction-list {
+  display: grid;
+  gap: 8px;
+}
+
+.app-shell .transaction-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid #ebf0f5 !important;
+  border-radius: 10px;
+  background: #fff !important;
+  padding: 8px;
+  box-shadow: none !important;
+}
+
+.app-shell .transaction-main {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.app-shell .transaction-category-icon {
+  width: 28px;
+  height: 28px;
+  border: 0 !important;
+  border-radius: 50%;
+  background: #fbdce2 !important;
+  color: #212529;
+  font-family: 'EliceDX', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.app-shell .transaction-item:has(.amount-line .income) .transaction-category-icon {
+  background: #e2f5ed !important;
+  color: #20c997;
+}
+
+.app-shell .transaction-main strong {
+  display: block;
+  overflow: hidden;
+  color: #212529;
+  font-family: 'EliceDX', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .transaction-main span:not(.transaction-category-icon) {
+  display: block;
+  overflow: hidden;
+  color: #6c757d;
+  font-family: 'EliceDX', sans-serif;
+  font-size: 8px;
+  font-weight: 300;
+  line-height: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .amount-line {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  min-width: 88px;
+}
+
+.app-shell .amount-line b {
+  color: #f43f5e !important;
+  font-family: 'Nanum', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: right;
+}
+
+.app-shell .amount-line b.income {
+  color: #20c997 !important;
+}
+
+.app-shell .amount-line b.expense {
+  color: #f43f5e !important;
+}
+
+.app-shell .amount-line b.transfer {
+  color: #6c757d;
+}
+
+.app-shell .amount-line button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #6c757d;
+  font-family: 'EliceDX', sans-serif;
+  font-size: 8px;
+  font-weight: 300;
+  line-height: 12px;
+}
+
+.app-shell .transaction-section .empty-state {
+  border: 1px solid #ebf0f5;
+  border-radius: 10px;
+  padding: 16px;
+  color: #6c757d;
+  font-family: 'EliceDX', sans-serif;
+  font-size: 12px;
+}
+
+.app-shell[data-theme='dark'] .transaction-section,
+.app-shell[data-theme='dark'] .transaction-item {
+  border-color: #303743 !important;
+  background: #1f242c !important;
+}
+
+.app-shell .calendar-screen .transaction-section.transaction-section {
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.app-shell[data-theme='dark'] .calendar-screen .transaction-section.transaction-section {
+  background: #1f242c !important;
+}
+
+.app-shell .floating-add-button.floating-add-button {
+  width: 60px !important;
+  height: 60px !important;
+  aspect-ratio: 1 / 1;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: #20c997 !important;
+  color: #fff !important;
+}
+
+.app-shell .floating-add-button.floating-add-button span {
+  width: 20px !important;
+  height: 2.5px !important;
+  background: #fff !important;
+}
 @media (max-width: 900px) {
   .asset-feature-heading { display: grid; }
   .asset-feature-summary { justify-content: flex-start; }
