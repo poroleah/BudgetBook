@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import DonguramiIcon from '../assets/Dongurami.svg'
 import DonguIcon from '../assets/Dongu.svg'
 
@@ -45,6 +45,9 @@ const props = defineProps({
 const emit = defineEmits(['add-book', 'open-category', 'open-settings', 'select-book'])
 const isBookSwitcherOpen = ref(false)
 const bookSwitcher = ref(null)
+const monthlySummary = ref(null)
+const summaryFontSize = ref(null)
+let fitRequest = 0
 
 const activeBookLabel = computed(() => props.bookName || '내 가계부')
 
@@ -63,6 +66,25 @@ function closeBookSwitcherOnOutsideClick(event) {
   isBookSwitcherOpen.value = false
 }
 
+async function fitMonthlySummary() {
+  const request = ++fitRequest
+  summaryFontSize.value = null
+  await nextTick()
+  if (request !== fitRequest || !monthlySummary.value) return
+
+  const summary = monthlySummary.value
+  const items = [...summary.children]
+  const styles = getComputedStyle(summary)
+  const gap = Number.parseFloat(styles.columnGap) || 0
+  const naturalWidth = items.reduce((width, item) => width + item.scrollWidth, 0)
+    + gap * Math.max(0, items.length - 1)
+
+  if (naturalWidth <= summary.clientWidth) return
+
+  const defaultSize = Number.parseFloat(styles.fontSize) || 15
+  summaryFontSize.value = Math.max(8, defaultSize * (summary.clientWidth / naturalWidth) * 0.98)
+}
+
 watch(
   () => [props.activeTab, props.activeBookPage],
   () => {
@@ -70,12 +92,21 @@ watch(
   },
 )
 
+watch(
+  () => [props.income, props.expense, props.transfer, props.currency],
+  fitMonthlySummary,
+  { flush: 'post' },
+)
+
 onMounted(() => {
   document.addEventListener('click', closeBookSwitcherOnOutsideClick)
+  window.addEventListener('resize', fitMonthlySummary)
+  fitMonthlySummary()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeBookSwitcherOnOutsideClick)
+  window.removeEventListener('resize', fitMonthlySummary)
 })
 </script>
 
@@ -116,7 +147,12 @@ onBeforeUnmount(() => {
               </div>
             </Transition>
           </div>
-          <div class="compact-summary" aria-label="이번 달 요약">
+          <div
+            ref="monthlySummary"
+            class="compact-summary"
+            :style="summaryFontSize ? { fontSize: `${summaryFontSize}px` } : undefined"
+            aria-label="이번 달 요약"
+          >
             <span>수입 {{ currency.format(income) }}</span>
             <span>지출 {{ currency.format(expense) }}</span>
             <span>이체 {{ currency.format(transfer) }}</span>
@@ -148,6 +184,28 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.topbar {
+  width: min(100%, 370px);
+}
+
+.title-copy {
+  gap: 17px;
+}
+
+.compact-summary {
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+}
+
+.compact-summary span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.title-heading {
+  top: 3px;
+}
+
 .book-switcher-menu {
   font-family: 'EliceDX', sans-serif;
 }
@@ -199,7 +257,7 @@ onBeforeUnmount(() => {
 
 .book-menu {
   gap: 8px;
-  top: 4px;
+  top: 0;
 }
 
 .book-menu .header-icon-button.header-icon-button {

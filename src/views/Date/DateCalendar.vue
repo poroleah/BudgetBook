@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import DateAdd from './DateAdd.vue'
+import DateAddButton from './DateAddButton.vue'
 import DateRecord from './DateRecord.vue'
 
 const props = defineProps({
@@ -186,7 +186,7 @@ function openTransactionEditor(transaction) {
       @edit-transaction="openTransactionEditor"
     />
 
-    <DateAdd
+    <DateAddButton
       ref="dateAdd"
       :assets="assets"
       :categories="categories"
@@ -194,6 +194,7 @@ function openTransactionEditor(transaction) {
       :payment-methods="paymentMethods"
       :selected-date="selectedDate"
       :transaction-form="transactionForm"
+      :week-starts-on="weekStartsOn"
       @add-transaction="$emit('add-transaction')"
       @open-category-page="$emit('open-category-page')"
       @update-transaction="$emit('update-transaction', $event)"

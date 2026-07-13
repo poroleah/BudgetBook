@@ -203,10 +203,11 @@ button:active {
 
 .compact-summary {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: clamp(6px, 2vw, 12px);
-  overflow-x: auto;
-  max-width: calc(100% - 104px);
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
   color: #617080;
   font-family: 'EliceDX', sans-serif;
   font-size: clamp(0.78rem, 2.9vw, 0.94rem);
@@ -228,7 +229,7 @@ button:active {
 }
 
 .compact-summary span:nth-child(2) {
-  color: #c74343;
+  color: #f43f5e;
 }
 
 .book-menu {
@@ -4216,7 +4217,7 @@ select {
   border: 0 !important;
   border-radius: 50%;
   background: #fbdce2 !important;
-  color: #212529;
+  color: #f43f5e !important;
   font-family: 'EliceDX', sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -4224,7 +4225,12 @@ select {
 
 .app-shell .transaction-item:has(.amount-line .income) .transaction-category-icon {
   background: #e2f5ed !important;
-  color: #20c997;
+  color: #20c997 !important;
+}
+
+.app-shell .transaction-item:has(.amount-line .transfer) .transaction-category-icon {
+  background: #f5f6f8 !important;
+  color: #6c757d !important;
 }
 
 .app-shell .transaction-main strong {
