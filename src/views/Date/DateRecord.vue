@@ -49,7 +49,7 @@ function editTransaction(transaction) {
 </script>
 
 <template>
-  <section class="transaction-section">
+  <section class="transaction-section" :class="{ 'is-empty': !selectedTransactions.length }">
     <div class="panel-heading transaction-heading">
       <div>
         <p>{{ selectedDate }}</p>

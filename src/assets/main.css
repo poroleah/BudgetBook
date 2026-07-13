@@ -4297,12 +4297,21 @@ select {
 }
 
 .app-shell .transaction-section .empty-state {
-  border: 1px solid #ebf0f5;
-  border-radius: 10px;
-  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
   color: #6c757d;
   font-family: 'EliceDX', sans-serif;
   font-size: 12px;
+}
+
+.app-shell .transaction-section.is-empty .transaction-list {
+  min-height: 205px;
+  place-items: center;
+}
+
+.app-shell .transaction-section.is-empty .empty-state {
+  text-align: center;
 }
 
 .app-shell[data-theme='dark'] .transaction-section,
